@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using IntegrationTests.Api;
 using IntegrationTests.Infrastructure;
+using Marketplace.Domain;
 using Marketplace.Infrastructure.Consumers;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -89,6 +90,28 @@ public class ListingCatalogTests
         Assert.That(listing.Services.Single().Name, Is.EqualTo("Nowa nazwa"));
         Assert.That(listing.Prices.Single().Size, Is.EqualTo(VehicleSize.Small));
         Assert.That(listing.Prices.Single().AmountInCents, Is.EqualTo(600));
+    }
+
+    [Test]
+    public async Task TheFirstService_IsCopiedOntoAListingCreatedWithoutServices()
+    {
+        // A new studio sets up its listing before it has any services
+        var studioId = Guid.NewGuid();
+        await using (var db = PostgresFixture.CreateMarketplaceDbContext(new TenantContext()))
+        {
+            db.Listings.Add(StudioListing.Create(studioId,
+                new ListingProfile("Nowe studio", null, "ul. Krótka 2", "Kraków", null, 50.06, 19.94)));
+            await db.SaveChangesAsync();
+        }
+        var serviceId = Guid.NewGuid();
+
+        await ConsumeAsync(new ServiceCatalogChanged(studioId, DateTime.UtcNow,
+            [new CatalogService(serviceId, "Mycie", "ExteriorWash", [new CatalogPrice("Medium", 19999)])]));
+
+        await using var check = PostgresFixture.CreateMarketplaceDbContext(new TenantContext());
+        var listing = await check.Listings.AsNoTracking().SingleAsync(l => l.StudioId == studioId);
+        Assert.That(listing.Services.Single().ServiceId, Is.EqualTo(serviceId));
+        Assert.That(listing.Prices.Single().AmountInCents, Is.EqualTo(19999));
     }
 
     private static async Task ConsumeAsync(ServiceCatalogChanged message)

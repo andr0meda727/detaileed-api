@@ -47,7 +47,10 @@ public class StudioListingConfiguration : IEntityTypeConfiguration<StudioListing
             service.Property<Guid>("StudioId").HasColumnName("studio_id");
             service.HasKey("StudioId", nameof(ListedService.ServiceId)).HasName("listing_service_pkey");
 
-            service.Property(s => s.ServiceId).HasColumnName("service_id");
+            // Scheduling's service ID, never generated here. Left to convention, EF treats this part of an owned
+            // collection's key as generated, so a newly copied service counts as existing and is UPDATEd instead of
+            // INSERTed (DbUpdateConcurrencyException when a listing gets its first service).
+            service.Property(s => s.ServiceId).ValueGeneratedNever().HasColumnName("service_id");
             service.Property(s => s.Name).HasColumnName("name");
             service.Property(s => s.Category).HasConversion<string>().HasColumnName("category");
 
@@ -62,7 +65,7 @@ public class StudioListingConfiguration : IEntityTypeConfiguration<StudioListing
             price.Property<Guid>("StudioId").HasColumnName("studio_id");
             price.HasKey("StudioId", nameof(ListedPrice.ServiceId), nameof(ListedPrice.Size)).HasName("listing_price_pkey");
 
-            price.Property(p => p.ServiceId).HasColumnName("service_id");
+            price.Property(p => p.ServiceId).ValueGeneratedNever().HasColumnName("service_id");
             price.Property(p => p.Size).HasConversion<string>().HasColumnName("vehicle_size");
             price.Property(p => p.AmountInCents).HasColumnName("amount_cents");
         });
