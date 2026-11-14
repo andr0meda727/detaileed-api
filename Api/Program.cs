@@ -9,6 +9,7 @@ using Infrastructure.Extensions;
 using Inventory.Api;
 using Marketplace.Api;
 using Notifications.Api;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using Scheduling.Api;
@@ -65,6 +66,13 @@ builder.Services.AddCors(options =>
 
 // Fail at startup, not on the first report, if the OS has no time-zone data (Alpine images need tzdata)
 TimeZones.Find(TimeZones.Default);
+
+// Build-time OpenAPI generation (dotnet-getdocument, see Api.csproj) starts the host to read the endpoints.
+// It needs no database, so the bus and the background workers are left out.
+if (System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider")
+{
+    builder.Services.RemoveAll<IHostedService>();
+}
 
 var app = builder.Build();
 
