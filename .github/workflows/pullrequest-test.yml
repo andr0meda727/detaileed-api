@@ -14,9 +14,10 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
+  # Decides whether the PR changes code. It fails open: the jobs below are skipped only when it positively answered
+  # "false". If it fails or can't tell, they run, because a skipped required check counts as passed.
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
@@ -25,33 +26,30 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Check which files changed
         id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            code:
-              - 'Api/**'
-              - 'Infrastructure/**'
-              - 'Shared/**'
-              - 'Modules/**'
-              - 'UnitTests/**'
-              - 'IntegrationTests/**'
-              - 'ArchitectureTests/**'
-              - '*.sln'
-              - '**/*.csproj'
-              - '**/*.props'
-              - '**/*.targets'
-              - 'NuGet.config'
-              - 'global.json'
-              - '.github/workflows/**'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          code=true
+          if changed=$(git diff --name-only "$BASE_SHA"...HEAD); then
+            echo "$changed"
+            if ! grep -qE '^(Api|Infrastructure|Shared|Modules|UnitTests|IntegrationTests|ArchitectureTests|\.github/workflows)/|\.(sln|csproj|props|targets)$|^(NuGet\.config|global\.json)$' <<< "$changed"; then
+              code=false
+            fi
+          else
+            echo "::warning::Couldn't list the changed files; running every check."
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
 
   # The job names "Unit Tests" and "Integration Tests" are the required checks in the branch protection; keep them.
   unit-tests:
     name: Unit Tests
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -75,7 +73,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -99,7 +97,7 @@ jobs:
   migrations:
     name: Migrations Check
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     env:
       ASPNETCORE_ENVIRONMENT: Production
@@ -143,7 +141,7 @@ jobs:
   docker:
     name: Docker Build
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
 
     steps:
