@@ -50,7 +50,7 @@ public sealed class GetPublicAvailabilityHandler(
         if (found is not { } result) return AvailabilitySearch.UnknownServices;
 
         return new PublicAvailabilityDto(
-            plan.Enabled, (int)result.Duration.TotalMinutes,
+            plan.Enabled, (int)result.Duration.TotalMinutes, plan.Zone.Id,
             result.Slots.Select(s => new PublicSlotDto(s.Range.Start, s.Range.End)).ToList());
     }
 }

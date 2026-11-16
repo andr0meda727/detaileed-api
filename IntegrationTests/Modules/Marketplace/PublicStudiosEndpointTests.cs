@@ -105,6 +105,7 @@ public class PublicStudiosEndpointTests
 
         var ceramic = page.GetProperty("services").EnumerateArray().Single(s => s.GetProperty("id").GetGuid() == _ceramicId);
         Assert.That(ceramic.GetProperty("prices")[0].GetProperty("vehicleSize").GetString(), Is.EqualTo("Large"));
+        Assert.That(page.GetProperty("timeZone").GetString(), Is.EqualTo("Europe/Warsaw"));
         Assert.That(hidden.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 

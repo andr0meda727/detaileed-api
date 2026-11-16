@@ -175,8 +175,9 @@ Another studio's request: `BOOKING_REQUEST_NOT_FOUND`.
 | `PUT /api/marketplace/listing` | owner | `{ name, description?, address, city, phone?, latitude, longitude }` → `Listing` (created unpublished) |
 | `POST /api/marketplace/listing/publish` / `unpublish` | owner | 204. `LISTING_HAS_NO_SERVICES` |
 
-`Listing` = `{ studioId, name, description, address, city, phone, latitude, longitude, isPublished, categories,
-services: [{ id, name, category, prices: [{ vehicleSize, price }] }], averageRating, reviewCount }`.
+`Listing` = `{ studioId, name, description, address, city, phone, latitude, longitude, isPublished, timeZone, categories,
+services: [{ id, name, category, prices: [{ vehicleSize, price }] }], averageRating, reviewCount }`. `timeZone` is the studio's
+IANA zone (e.g. `"Europe/Warsaw"`), in which its hours and slots are meant; show times in it, not the browser's zone.
 
 ## Customer map (public)
 
@@ -185,7 +186,7 @@ services: [{ id, name, category, prices: [{ vehicleSize, price }] }], averageRat
 | `GET /api/public/studios?minLat&maxLat&minLng&maxLng&category=&vehicleSize=&page=` | public | paged `{ studioId, name, city, latitude, longitude, categories, fromPrice, averageRating, reviewCount }` |
 | `GET /api/public/studios/{studioId}` | public | `Listing`. `LISTING_NOT_FOUND` |
 | `GET /api/public/studios/{studioId}/reviews?limit=&cursor=` | public | cursor list of `{ id, authorName, rating, comment, createdAt }`, newest first. `LISTING_NOT_FOUND`, `INVALID_CURSOR` |
-| `GET /api/public/studios/{studioId}/availability?from&to&serviceIds&vehicleSize` | public | `{ planningEnabled, durationMinutes, slots: [{ start, end }] }`. `STUDIO_NOT_FOUND`, `SERVICE_NOT_FOUND` |
+| `GET /api/public/studios/{studioId}/availability?from&to&serviceIds&vehicleSize` | public | `{ planningEnabled, durationMinutes, timeZone, slots: [{ start, end }] }`. `STUDIO_NOT_FOUND`, `SERVICE_NOT_FOUND` |
 | `POST /api/public/studios/{studioId}/estimate` | public | `{ serviceIds, vehicleSize }` → `{ services: [{ serviceId, name, price }], total, hasUnpricedServices }`. `STUDIO_NOT_FOUND`, `BOOKING_REQUEST_UNKNOWN_SERVICES` |
 
 ## Customer account (`/api/me`)
@@ -229,7 +230,7 @@ GET /api/public/studios?minLat=50.0&maxLat=50.1&minLng=19.8&maxLng=20.1&vehicleS
      "averageRating": 4.7, "reviewCount": 12 }], "page": 1, "pageSize": 20, "totalCount": 1, "totalPages": 1 }
 
 GET /api/public/studios/3f2c…/availability?from=2026-11-16&to=2026-11-20&serviceIds=9a1e…&vehicleSize=Large
-→ { "planningEnabled": true, "durationMinutes": 90,
+→ { "planningEnabled": true, "durationMinutes": 90, "timeZone": "Europe/Warsaw",
     "slots": [{ "start": "2026-11-16T07:00:00Z", "end": "2026-11-16T08:30:00Z" }] }
 
 POST /api/me/booking-requests
