@@ -1,5 +1,6 @@
 using System.Reflection;
 using FluentValidation;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Notifications.Api.Controllers;
@@ -18,10 +19,13 @@ public static class NotificationsModule
 {
     public static Assembly ConsumersAssembly => typeof(BookingsReportConsumer).Assembly;
 
-    public static IServiceCollection AddNotificationsModule(this IServiceCollection services)
+    public static IServiceCollection AddNotificationsModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddSingleton<BookingsReportPdf>();
+        services.AddSingleton(new EmailLinks(
+            configuration["Frontend:BaseUrl"] ?? throw new InvalidOperationException("Frontend:BaseUrl is missing."),
+            configuration["Web:BaseUrl"] ?? throw new InvalidOperationException("Web:BaseUrl is missing.")));
         services.TryAddSingleton(TimeProvider.System);
 
         services.AddValidatorsFromAssemblyContaining<BookingsReportRequestValidator>();

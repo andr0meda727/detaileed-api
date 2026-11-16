@@ -140,6 +140,9 @@ vehicle: { licensePlate, brand, model, size }, services: [{ serviceId, name, pri
 hasUnpricedServices, notes, rejectionReason, createdAt, decidedAt, booking: { id, scheduledAt, status, totalPrice } | null }`.
 Another studio's request: `BOOKING_REQUEST_NOT_FOUND`.
 
+A new request is emailed to the studio's owners with a link to `{Frontend:BaseUrl}/s/<studioId>/requests?id=<requestId>`;
+the answer is emailed to the customer with a link to `{Web:BaseUrl}/konto/rezerwacje`.
+
 ## Inventory
 
 | Method and path | Auth | Body → response |
@@ -262,4 +265,3 @@ POST /api/bookings
 - Creating a second studio and editing a studio's name, phone or address (master's versions were built on the removed
   Core layer and weren't carried over). The public listing has its own name and address.
 - Booking responses carry the status name, not `statusId`.
-- Booking-request emails have no link into the frontend yet.

@@ -57,7 +57,7 @@ public static class EmailTemplates
     /// </summary>
     public static EmailContent BookingRequestReceived(
         string customerName, string customerPhone, string licensePlate, IReadOnlyList<string> services,
-        DateTime preferredAtUtc, TimeZoneInfo timeZone)
+        DateTime preferredAtUtc, TimeZoneInfo timeZone, string requestUrl)
     {
         var when = TimeZones.ToLocal(preferredAtUtc, timeZone);
         var list = string.Join("", services.Select(s => $"<li>{Html(s)}</li>"));
@@ -69,7 +69,8 @@ public static class EmailTemplates
              prosi o wizytę <strong>{when:dd.MM.yyyy HH:mm}</strong> ({Html(timeZone.Id)})
              dla pojazdu {Html(licensePlate)}.</p>
              <ul>{list}</ul>
-             <p>Zaakceptuj albo odrzuć prośbę w panelu DetailFlow, w zakładce z prośbami o rezerwację.</p>
+             <p>Zaakceptuj albo odrzuć prośbę w panelu DetailFlow:</p>
+             {Button(requestUrl, "Zobacz prośbę")}
              """);
     }
 
@@ -77,7 +78,7 @@ public static class EmailTemplates
     /// To the customer: the studio booked the visit.
     /// </summary>
     public static EmailContent BookingRequestAccepted(
-        string customerName, string studioName, DateTime scheduledAtUtc, TimeZoneInfo timeZone)
+        string customerName, string studioName, DateTime scheduledAtUtc, TimeZoneInfo timeZone, string bookingsUrl)
     {
         var when = TimeZones.ToLocal(scheduledAtUtc, timeZone);
 
@@ -88,13 +89,15 @@ public static class EmailTemplates
              <p>Studio <strong>{Html(studioName)}</strong> przyjęło Twoją rezerwację na
              <strong>{when:dd.MM.yyyy HH:mm}</strong> ({Html(timeZone.Id)}).</p>
              <p>Szczegóły znajdziesz w historii rezerwacji na swoim koncie.</p>
+             {Button(bookingsUrl, "Moje rezerwacje")}
              """);
     }
 
     /// <summary>
     /// To the customer: the studio can't take the visit, with its reason when it gave one.
     /// </summary>
-    public static EmailContent BookingRequestRejected(string customerName, string studioName, string? reason)
+    public static EmailContent BookingRequestRejected(
+        string customerName, string studioName, string? reason, string bookingsUrl)
     {
         var why = reason == null ? "" : $"<p>Powód: {Html(reason)}</p>";
 
@@ -105,8 +108,15 @@ public static class EmailTemplates
              <p>Niestety studio <strong>{Html(studioName)}</strong> nie może przyjąć Twojej prośby o rezerwację.</p>
              {why}
              <p>Możesz wybrać inny termin albo inne studio na mapie.</p>
+             {Button(bookingsUrl, "Moje rezerwacje")}
              """);
     }
+
+    private static string Button(string url, string label) => $"""
+        <p><a href="{Html(url)}"
+              style="display: inline-block; padding: 12px 24px; background-color: #2563eb;
+                     color: white; text-decoration: none; border-radius: 6px;">{Html(label)}</a></p>
+        """;
 
     // Escapes what matters in HTML (<, >, &, quotes) but keeps Polish letters readable, unlike WebUtility.HtmlEncode
     private static readonly HtmlEncoder Encoder = HtmlEncoder.Create(UnicodeRanges.All);
