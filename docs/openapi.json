@@ -5371,6 +5371,7 @@
           "latitude",
           "longitude",
           "isPublished",
+          "timeZone",
           "categories",
           "services"
         ],
@@ -5419,6 +5420,9 @@
           },
           "isPublished": {
             "type": "boolean"
+          },
+          "timeZone": {
+            "type": "string"
           },
           "categories": {
             "type": "array",
@@ -5996,6 +6000,7 @@
         "required": [
           "planningEnabled",
           "durationMinutes",
+          "timeZone",
           "slots"
         ],
         "type": "object",
@@ -6010,6 +6015,9 @@
               "string"
             ],
             "format": "int32"
+          },
+          "timeZone": {
+            "type": "string"
           },
           "slots": {
             "type": "array",
