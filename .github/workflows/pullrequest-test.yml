@@ -1,31 +1,57 @@
 name: PR Test Validation
 
+# Runs on every PR to master, so the required checks always report. A PR that changes no code (docs only) skips
+# the jobs, and a skipped job counts as passed; with a `paths` filter on the trigger instead, such a PR would wait
+# forever for checks that never start.
 on:
   pull_request:
     branches:
       - master
-    paths:
-      - 'Api/**'
-      - 'Core/**'
-      - 'Infrastructure/**'
-      - 'Shared/**'
-      - 'Modules/**'
-      - 'UnitTests/**'
-      - 'IntegrationTests/**'
-      - 'ArchitectureTests/**'
-      - '**/*.csproj'
-      - '**/*.props'
-      - '**/*.targets'
-      - 'Directory.Build.props'
-      - 'Directory.Build.targets'
-      - 'NuGet.config'
-      - '.github/workflows/*.yml'
-      - '!**/*.md'
-      - '!docs/**'
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check which files changed
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            code:
+              - 'Api/**'
+              - 'Infrastructure/**'
+              - 'Shared/**'
+              - 'Modules/**'
+              - 'UnitTests/**'
+              - 'IntegrationTests/**'
+              - 'ArchitectureTests/**'
+              - '*.sln'
+              - '**/*.csproj'
+              - '**/*.props'
+              - '**/*.targets'
+              - 'NuGet.config'
+              - 'global.json'
+              - '.github/workflows/**'
+
+  # The job names "Unit Tests" and "Integration Tests" are the required checks in the branch protection; keep them.
   unit-tests:
     name: Unit Tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -48,6 +74,8 @@ jobs:
 
   integration-tests:
     name: Integration Tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -64,3 +92,71 @@ jobs:
 
       - name: Run Integration Tests
         run: dotnet test "IntegrationTests/IntegrationTests.csproj" --configuration Release --logger "trx;LogFileName=integration-test-results.trx"
+
+  # A model change without its migration would only show up when production runs the code. This compares every
+  # DbContext's model with its migrations snapshot; it doesn't connect to a database, the settings below only let
+  # the host start.
+  migrations:
+    name: Migrations Check
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    env:
+      ASPNETCORE_ENVIRONMENT: Production
+      DOTNET_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=127.0.0.1;Port=1;Database=none;Username=none;Password=none
+      Supabase__Url: https://ci.invalid
+      Supabase__Key: ci
+      Supabase__ServiceRoleKey: ci
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Same version as Microsoft.EntityFrameworkCore.Design in Api.csproj
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 10.0.3
+
+      - name: Build
+        run: dotnet build Api --configuration Release
+
+      - name: Check for model changes without a migration
+        run: |
+          failed=0
+          for context in ApplicationDbContext InventoryDbContext CrmDbContext SchedulingDbContext IdentityDbContext MarketplaceDbContext CustomersDbContext; do
+            echo "::group::$context"
+            if ! dotnet ef migrations has-pending-model-changes -p Api -s Api -c "$context" --configuration Release --no-build; then
+              echo "::error::$context has model changes without a migration. Add one (see docs/database.md)."
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $failed
+
+  # deploy.yml builds the same image after the merge; building it here catches a Dockerfile that misses a new
+  # project (every .csproj must be copied for the restore layer) before it reaches master.
+  docker:
+    name: Docker Build
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Api/Dockerfile
+          push: false
+          cache-from: type=gha
