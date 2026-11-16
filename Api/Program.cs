@@ -21,6 +21,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Enums travel as their names ("Interior"), not numbers, so the API stays readable and reordering them is safe
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+// The OpenAPI generator reads these (minimal-API) options, not the MVC ones above; without the converter here the
+// spec types enums as integers although the API sends names.
+builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // Add Infrastructure (Database, Repositories)
 builder.Services.AddInfrastructure(builder.Configuration);
