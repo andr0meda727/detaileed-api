@@ -1,3 +1,4 @@
+using Identity.Contracts;
 using Marketplace.Application.Abstractions;
 using Marketplace.Application.Listings;
 using Marketplace.Application.Reviews;
@@ -7,7 +8,7 @@ using Shared.Kernel.Results;
 
 namespace Marketplace.Application.Search.GetPublicStudio;
 
-public sealed class GetPublicStudioHandler(IMarketplaceDbContext db)
+public sealed class GetPublicStudioHandler(IMarketplaceDbContext db, IStudioDirectory studios)
 {
     /// <summary>
     /// A studio's public page. An unpublished studio is reported as missing, the same as one that doesn't exist.
@@ -19,6 +20,7 @@ public sealed class GetPublicStudioHandler(IMarketplaceDbContext db)
 
         if (listing == null) return ListingErrors.NotFound;
 
-        return ListingDto.From(listing, await db.RatingAsync(studioId, cancellationToken));
+        return ListingDto.From(
+            listing, await studios.OfAsync(studioId, cancellationToken), await db.RatingAsync(studioId, cancellationToken));
     }
 }

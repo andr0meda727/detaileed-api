@@ -20,15 +20,17 @@ public sealed record ListingServiceDto(Guid Id, string Name, ServiceCategory Cat
 
 /// <summary>
 /// A listing with its services and prices, as both the owner and customers see it.
+/// <see cref="TimeZone"/> is the studio's IANA zone (from Identity), in which its opening hours and slots are meant.
 /// </summary>
 public sealed record ListingDto(
     Guid StudioId, string Name, string? Description, string Address, string City, string? Phone,
-    double Latitude, double Longitude, bool IsPublished, List<ServiceCategory> Categories, List<ListingServiceDto> Services,
+    double Latitude, double Longitude, bool IsPublished, string TimeZone, List<ServiceCategory> Categories,
+    List<ListingServiceDto> Services,
     double? AverageRating = null, int ReviewCount = 0)
 {
-    public static ListingDto From(StudioListing listing, Reviews.RatingSummary? rating = null) => new(
+    public static ListingDto From(StudioListing listing, string timeZone, Reviews.RatingSummary? rating = null) => new(
         listing.StudioId, listing.Name, listing.Description, listing.Address, listing.City, listing.Phone,
-        listing.Latitude, listing.Longitude, listing.IsPublished, listing.Categories.ToList(),
+        listing.Latitude, listing.Longitude, listing.IsPublished, timeZone, listing.Categories.ToList(),
         listing.Services
             .OrderBy(s => s.Category).ThenBy(s => s.Name)
             .Select(s => new ListingServiceDto(s.ServiceId, s.Name, s.Category,

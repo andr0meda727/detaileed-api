@@ -9,9 +9,9 @@ namespace Notifications.Infrastructure.Consumers;
 /// <summary>
 /// Emails about online booking requests: the studio's owners hear about a new request, and the customer hears how
 /// the studio answered. Times are shown in the studio's time zone. Delivery is at least once, so a rare duplicate
-/// email is possible; nothing else is changed here.
+/// email is possible; nothing else is changed here. Each email links to the request (staff) or the customer's bookings.
 /// </summary>
-public class BookingRequestEmailConsumer(IEmailSender emailSender, IStudioDirectory studios)
+public class BookingRequestEmailConsumer(IEmailSender emailSender, IStudioDirectory studios, EmailLinks links)
     : IConsumer<BookingRequestSubmitted>, IConsumer<BookingRequestDecided>
 {
     public async Task Consume(ConsumeContext<BookingRequestSubmitted> context)
@@ -20,7 +20,7 @@ public class BookingRequestEmailConsumer(IEmailSender emailSender, IStudioDirect
         var zone = TimeZones.Find(await studios.FindTimeZoneAsync(message.StudioId, context.CancellationToken));
         var content = EmailTemplates.BookingRequestReceived(
             message.CustomerName, message.CustomerPhone, message.VehicleLicensePlate, message.Services,
-            message.PreferredAt, zone);
+            message.PreferredAt, zone, links.BookingRequest(message.StudioId, message.RequestId));
 
         foreach (var owner in await studios.GetOwnerEmailsAsync(message.StudioId, context.CancellationToken))
         {
@@ -36,11 +36,13 @@ public class BookingRequestEmailConsumer(IEmailSender emailSender, IStudioDirect
         if (message.Accepted && message.ScheduledAt is { } scheduledAt)
         {
             var zone = TimeZones.Find(await studios.FindTimeZoneAsync(message.StudioId, context.CancellationToken));
-            content = EmailTemplates.BookingRequestAccepted(message.CustomerName, message.StudioName, scheduledAt, zone);
+            content = EmailTemplates.BookingRequestAccepted(
+                message.CustomerName, message.StudioName, scheduledAt, zone, links.CustomerBookings());
         }
         else
         {
-            content = EmailTemplates.BookingRequestRejected(message.CustomerName, message.StudioName, message.RejectionReason);
+            content = EmailTemplates.BookingRequestRejected(
+                message.CustomerName, message.StudioName, message.RejectionReason, links.CustomerBookings());
         }
 
         await emailSender.SendAsync(message.CustomerEmail, content);

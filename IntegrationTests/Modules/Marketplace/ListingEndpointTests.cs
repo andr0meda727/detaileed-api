@@ -76,6 +76,23 @@ public class ListingEndpointTests
     }
 
     [Test]
+    public async Task Listing_CarriesTheStudiosTimeZone()
+    {
+        // Studios of its own, so the other tests still find theirs without a listing
+        var seed = new TwoStudiosSeed();
+        await seed.SeedAsync();
+        using var owner = _factory.CreateClientFor(seed.StudioA.OwnerUserId);
+
+        var saved = await owner.PutAsJsonAsync("/api/marketplace/listing", Krakow);
+        (await owner.PutAsJsonAsync("/api/studios/time-zone", new { timeZone = "America/New_York" })).EnsureSuccessStatusCode();
+        var listing = await owner.GetFromJsonAsync<JsonElement>("/api/marketplace/listing");
+
+        Assert.That((await saved.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("timeZone").GetString(),
+            Is.EqualTo("Europe/Warsaw"));
+        Assert.That(listing.GetProperty("timeZone").GetString(), Is.EqualTo("America/New_York"));
+    }
+
+    [Test]
     public async Task StudioWithoutServices_CannotBePublished()
     {
         using var owner = _factory.CreateClientFor(_seed.StudioB.OwnerUserId);
