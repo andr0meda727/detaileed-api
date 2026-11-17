@@ -17,16 +17,20 @@ public sealed class FakeAuthProvider : IAuthProvider
 
     public ConcurrentBag<(string Email, string RedirectUrl)> Invites { get; } = [];
 
+    public ConcurrentDictionary<string, string> SignUpRedirects { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     public bool SkipProfileRow { get; set; }
 
     public Task<bool> UserExistsAsync(string email, CancellationToken cancellationToken) =>
         Task.FromResult(Accounts.ContainsKey(email));
 
     public async Task<Guid> SignUpAsync(
-        string email, string password, string? firstName, string? lastName, CancellationToken cancellationToken)
+        string email, string password, string? firstName, string? lastName, string redirectUrl,
+        CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid();
         Accounts[email] = id;
+        SignUpRedirects[email] = redirectUrl;
 
         if (!SkipProfileRow)
         {
