@@ -139,7 +139,9 @@ public class AvailabilityEndpointTests
             $"/api/public/studios/{_seed.StudioB.StudioId}/availability?from={DayAhead(1):yyyy-MM-dd}&serviceIds={_seed.StudioB.ServiceId}");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var slots = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slots").EnumerateArray().ToList();
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.That(body.GetProperty("timeZone").GetString(), Is.EqualTo("Europe/Warsaw"));
+        var slots = body.GetProperty("slots").EnumerateArray().ToList();
         Assert.That(slots, Is.Not.Empty);
         Assert.That(slots.All(s => s.GetProperty("start").GetDateTime() >= DateTime.UtcNow.AddHours(12).AddMinutes(-1)), Is.True);
         Assert.That(slots[0].TryGetProperty("suggestedBayId", out _), Is.False, "customers don't see bays");

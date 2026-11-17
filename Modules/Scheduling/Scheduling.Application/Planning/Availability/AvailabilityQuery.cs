@@ -30,8 +30,10 @@ public sealed record PublicSlotDto(DateTime Start, DateTime End);
 
 /// <summary>
 /// What customers see: free start times only, never bays or other bookings.
+/// <see cref="TimeZone"/> is the studio's IANA zone, for showing the (UTC) slots in its local time.
 /// </summary>
-public sealed record PublicAvailabilityDto(bool PlanningEnabled, int DurationMinutes, List<PublicSlotDto> Slots);
+public sealed record PublicAvailabilityDto(
+    bool PlanningEnabled, int DurationMinutes, string TimeZone, List<PublicSlotDto> Slots);
 
 public class AvailabilityQueryValidator : AbstractValidator<AvailabilityQuery>
 {

@@ -130,7 +130,8 @@ A new module gets added to `ModuleBoundaryTests.Modules`, so every rule applies 
   endpoints match `ITenantContext.StudioId` themselves. Public endpoints use `[AllowAnonymous]`, `[AllowWithoutStudio]`
   and `[EnableRateLimiting(RateLimits.Public)]`. `PublicStudiosController` is output-cached (`PublicCatalogCachePolicy`,
   60 s, shared by all callers); `PublicCatalogEvictionInterceptor` empties it after every `MarketplaceDbContext` save, so
-  public answers must be built only from Marketplace's own tables. Never output-cache tenant data. The host trusts `X-Forwarded-For` only from private addresses.
+  public answers must be built only from Marketplace's own tables (one exception: the studio's `timeZone`, read through
+  `IStudioDirectory`, may lag a change by up to 60 s). Never output-cache tenant data. The host trusts `X-Forwarded-For` only from private addresses.
   `VehicleSize` lives in `Shared.Kernel.Vehicles` and travels between modules by name; don't add a second one.
 - Planning (Scheduling, `Domain/Planning`): a studio plans once it has opening hours and an active bay. `SlotPlanner`
   is pure (unit-tested); `BookingPlanner` loads its input through the `*OfAnyStudio` sets. A booking's `EndsAt` is

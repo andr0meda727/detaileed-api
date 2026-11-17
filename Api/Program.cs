@@ -9,6 +9,7 @@ using Infrastructure.Extensions;
 using Inventory.Api;
 using Marketplace.Api;
 using Notifications.Api;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using Scheduling.Api;
@@ -20,6 +21,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Enums travel as their names ("Interior"), not numbers, so the API stays readable and reordering them is safe
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+// The OpenAPI generator reads these (minimal-API) options, not the MVC ones above; without the converter here the
+// spec types enums as integers although the API sends names.
+builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // Add Infrastructure (Database, Repositories)
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -32,7 +36,7 @@ builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddInventoryModule(builder.Configuration);
 builder.Services.AddCrmModule(builder.Configuration);
 builder.Services.AddSchedulingModule(builder.Configuration);
-builder.Services.AddNotificationsModule();
+builder.Services.AddNotificationsModule(builder.Configuration);
 builder.Services.AddMarketplaceModule(builder.Configuration);
 builder.Services.AddCustomersModule(builder.Configuration);
 
@@ -49,15 +53,14 @@ builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+// The dashboard and the customer site; each environment lists its own origins (none listed = no cross-origin calls)
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
         policy
-            .WithOrigins(
-                "https://app.detaileed.com",
-                "http://localhost:3000"
-            )
+            .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -65,6 +68,13 @@ builder.Services.AddCors(options =>
 
 // Fail at startup, not on the first report, if the OS has no time-zone data (Alpine images need tzdata)
 TimeZones.Find(TimeZones.Default);
+
+// Build-time OpenAPI generation (dotnet-getdocument, see Api.csproj) starts the host to read the endpoints.
+// It needs no database, so the bus and the background workers are left out.
+if (System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider")
+{
+    builder.Services.RemoveAll<IHostedService>();
+}
 
 var app = builder.Build();
 

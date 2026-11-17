@@ -252,7 +252,6 @@ namespace Marketplace.Infrastructure.Persistence.Migrations
                                 .HasColumnName("studio_id");
 
                             b1.Property<Guid>("ServiceId")
-                                .ValueGeneratedOnAdd()
                                 .HasColumnType("uuid")
                                 .HasColumnName("service_id");
 

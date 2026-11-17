@@ -1,3 +1,4 @@
+using Identity.Contracts;
 using Marketplace.Application.Abstractions;
 using Marketplace.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +7,8 @@ using Shared.Kernel.Tenancy;
 
 namespace Marketplace.Application.Listings.SaveListing;
 
-public sealed class SaveListingHandler(IMarketplaceDbContext db, ITenantContext tenant, IServiceCatalogSource catalogSource)
+public sealed class SaveListingHandler(
+    IMarketplaceDbContext db, ITenantContext tenant, IServiceCatalogSource catalogSource, IStudioDirectory studios)
 {
     /// <summary>
     /// Creates the studio's listing or updates its profile. A new listing starts unpublished, with the studio's
@@ -29,6 +31,6 @@ public sealed class SaveListingHandler(IMarketplaceDbContext db, ITenantContext 
         }
 
         await db.SaveChangesAsync(cancellationToken);
-        return ListingDto.From(listing);
+        return ListingDto.From(listing, await studios.OfAsync(studioId, cancellationToken));
     }
 }

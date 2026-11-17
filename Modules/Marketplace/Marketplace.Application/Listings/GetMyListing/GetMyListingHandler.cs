@@ -1,3 +1,4 @@
+using Identity.Contracts;
 using Marketplace.Application.Abstractions;
 using Marketplace.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +7,7 @@ using Shared.Kernel.Tenancy;
 
 namespace Marketplace.Application.Listings.GetMyListing;
 
-public sealed class GetMyListingHandler(IMarketplaceDbContext db, ITenantContext tenant)
+public sealed class GetMyListingHandler(IMarketplaceDbContext db, ITenantContext tenant, IStudioDirectory studios)
 {
     public async Task<Result<ListingDto>> HandleAsync(CancellationToken cancellationToken)
     {
@@ -17,6 +18,8 @@ public sealed class GetMyListingHandler(IMarketplaceDbContext db, ITenantContext
 
         if (listing == null) return ListingErrors.NotFound;
 
-        return ListingDto.From(listing, await Reviews.RatingQueries.RatingAsync(db, studioId, cancellationToken));
+        return ListingDto.From(
+            listing, await studios.OfAsync(studioId, cancellationToken),
+            await Reviews.RatingQueries.RatingAsync(db, studioId, cancellationToken));
     }
 }
