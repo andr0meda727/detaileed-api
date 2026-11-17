@@ -39,12 +39,14 @@ public class SupabaseAuthProvider : IAuthProvider
     }
 
     public async Task<Guid> SignUpAsync(
-        string email, string password, string? firstName, string? lastName, CancellationToken cancellationToken)
+        string email, string password, string? firstName, string? lastName, string redirectUrl,
+        CancellationToken cancellationToken)
     {
         // first_name/last_name are read by the handle_new_user trigger into the profile row
         var session = await _client.Auth.SignUp(email, password, new SignUpOptions
         {
-            Data = new Dictionary<string, object> { { "first_name", firstName! }, { "last_name", lastName! } }
+            Data = new Dictionary<string, object> { { "first_name", firstName! }, { "last_name", lastName! } },
+            RedirectTo = redirectUrl
         });
 
         if (session?.User?.Id == null) throw new InvalidOperationException("Supabase did not create the account.");
