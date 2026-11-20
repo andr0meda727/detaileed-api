@@ -1,3 +1,4 @@
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Application.Abstractions;
 using Scheduling.Domain.Bookings;
@@ -28,10 +29,14 @@ public sealed record DayBoardDto(
     DateOnly Date, bool PlanningEnabled, int OpenMinutes, double UtilisationPercent, List<BoardBayDto> Bays,
     List<BoardBookingDto> Unassigned, List<BoardRequestDto> PendingRequests);
 
+public sealed record GetDayBoardQuery(DateOnly Date) : IQuery<DayBoardDto>;
+
 public sealed class GetDayBoardHandler(ISchedulingDbContext db, BookingPlanner planner, ITenantContext tenant)
+    : IQueryHandler<GetDayBoardQuery, DayBoardDto>
 {
-    public async Task<DayBoardDto> HandleAsync(DateOnly date, CancellationToken cancellationToken)
+    public async ValueTask<DayBoardDto> Handle(GetDayBoardQuery query, CancellationToken cancellationToken)
     {
+        var date = query.Date;
         var studioId = tenant.StudioId ?? throw new InvalidOperationException("The day board needs a resolved studio.");
         var plan = await planner.LoadAsync(studioId, cancellationToken);
         var day = BookingPlanner.DaysAround(plan, date, date);

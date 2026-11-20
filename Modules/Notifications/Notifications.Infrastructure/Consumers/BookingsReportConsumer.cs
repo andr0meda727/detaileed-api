@@ -30,3 +30,18 @@ public class BookingsReportConsumer(
         await emailSender.SendReportEmailAsync(message.RequestedByEmail, message.DateFrom, message.DateTo, pdf);
     }
 }
+
+/// <summary>
+/// Reports render in the API's own process, and a long range is hundreds of PDF pages built in memory. Rendering
+/// only a few at a time keeps a burst of requests (the start of a month) from slowing every other request; the rest
+/// wait in the queue. The limit is per running instance. <c>AddConsumers</c> finds this definition next to the consumer.
+/// </summary>
+public class BookingsReportConsumerDefinition : ConsumerDefinition<BookingsReportConsumer>
+{
+    public const int MaxConcurrentReports = 2;
+
+    public BookingsReportConsumerDefinition()
+    {
+        ConcurrentMessageLimit = MaxConcurrentReports;
+    }
+}

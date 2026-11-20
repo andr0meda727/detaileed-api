@@ -3,6 +3,7 @@ using FluentValidation;
 using Marketplace.Application.Abstractions;
 using Marketplace.Domain;
 using Marketplace.Domain.Reviews;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Pagination;
 using Shared.Kernel.Pagination;
@@ -66,8 +67,11 @@ public static class RatingQueries
         (await db.RatingsAsync([studioId], cancellationToken)).GetValueOrDefault(studioId) ?? RatingSummary.None;
 }
 
+public sealed record SubmitReviewCommand(SubmitReviewRequest Request) : ICommand<Result<ReviewDto>>;
+
 public sealed class SubmitReviewHandler(
     IMarketplaceDbContext db, ITenantContext tenant, ICustomerDirectory customers, TimeProvider clock)
+    : ICommandHandler<SubmitReviewCommand, Result<ReviewDto>>
 {
     public static readonly Error ProfileRequired = Error.Validation(
         "CUSTOMER_PROFILE_REQUIRED", "Uzupełnij imię w swoim profilu, zanim wystawisz opinię.");
@@ -76,8 +80,9 @@ public sealed class SubmitReviewHandler(
     /// The signed-in customer reviews one of their completed visits: once, within 90 days. Their name comes from
     /// their profile and is shortened to first name and initial.
     /// </summary>
-    public async Task<Result<ReviewDto>> HandleAsync(SubmitReviewRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<ReviewDto>> Handle(SubmitReviewCommand command, CancellationToken cancellationToken)
     {
+        var request = command.Request;
         var userId = tenant.UserId ?? throw new InvalidOperationException("A review needs a signed-in customer.");
 
         // Matched on the caller, so another customer's visit is simply not found
@@ -100,12 +105,16 @@ public sealed class SubmitReviewHandler(
     }
 }
 
+public sealed record GetReviewableVisitsQuery : IQuery<List<ReviewableVisitDto>>;
+
 public sealed class GetReviewableVisitsHandler(IMarketplaceDbContext db, ITenantContext tenant, TimeProvider clock)
+    : IQueryHandler<GetReviewableVisitsQuery, List<ReviewableVisitDto>>
 {
     /// <summary>
     /// The caller's completed visits they haven't reviewed yet and still can, newest first.
     /// </summary>
-    public async Task<List<ReviewableVisitDto>> HandleAsync(CancellationToken cancellationToken)
+    public async ValueTask<List<ReviewableVisitDto>> Handle(
+        GetReviewableVisitsQuery query, CancellationToken cancellationToken)
     {
         var userId = tenant.UserId ?? throw new InvalidOperationException("This needs a signed-in customer.");
         var since = clock.GetUtcNow().UtcDateTime - ReviewableVisit.ReviewPeriod;
@@ -128,16 +137,21 @@ public sealed class GetReviewableVisitsHandler(IMarketplaceDbContext db, ITenant
     }
 }
 
+public sealed record GetStudioReviewsQuery(Guid StudioId, CursorRequest Paging)
+    : IQuery<Result<CursorResponse<ReviewDto>>>;
+
 public sealed class GetStudioReviewsHandler(IMarketplaceDbContext db)
+    : IQueryHandler<GetStudioReviewsQuery, Result<CursorResponse<ReviewDto>>>
 {
     /// <summary>
     /// A published studio's reviews, newest first, a slice at a time ("show more"). Paged by cursor rather than offset,
     /// because new reviews arrive at the top: with offsets, one written while the customer reads would push a review
     /// they already saw onto the next page.
     /// </summary>
-    public async Task<Result<CursorResponse<ReviewDto>>> HandleAsync(
-        Guid studioId, CursorRequest paging, CancellationToken cancellationToken)
+    public async ValueTask<Result<CursorResponse<ReviewDto>>> Handle(
+        GetStudioReviewsQuery request, CancellationToken cancellationToken)
     {
+        var (studioId, paging) = request;
         TimeCursor? after = null;
         if (paging.Cursor != null)
         {

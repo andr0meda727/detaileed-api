@@ -5,12 +5,6 @@ using Marketplace.Api.Controllers;
 using Marketplace.Application.Abstractions;
 using Marketplace.Application.Directory;
 using Marketplace.Application.Listings;
-using Marketplace.Application.Listings.GetMyListing;
-using Marketplace.Application.Listings.PublishListing;
-using Marketplace.Application.Listings.SaveListing;
-using Marketplace.Application.Reviews;
-using Marketplace.Application.Search.GetPublicStudio;
-using Marketplace.Application.Search.SearchStudios;
 using Marketplace.Contracts;
 using Marketplace.Infrastructure;
 using Marketplace.Infrastructure.Consumers;
@@ -31,15 +25,6 @@ public static class MarketplaceModule
 
     public static IServiceCollection AddMarketplaceModule(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<GetMyListingHandler>();
-        services.AddScoped<SaveListingHandler>();
-        services.AddScoped<PublishListingHandler>();
-        services.AddScoped<SearchStudiosHandler>();
-        services.AddScoped<GetPublicStudioHandler>();
-        services.AddScoped<SubmitReviewHandler>();
-        services.AddScoped<GetReviewableVisitsHandler>();
-        services.AddScoped<GetStudioReviewsHandler>();
-
         services.AddValidatorsFromAssemblyContaining<ListingRequestValidator>();
 
         // Other modules ask which studios are public through this

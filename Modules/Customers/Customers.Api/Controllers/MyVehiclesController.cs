@@ -3,6 +3,7 @@ using Customers.Application.Garage.AddVehicle;
 using Customers.Application.Garage.DeleteVehicle;
 using Customers.Application.Garage.GetMyVehicles;
 using Customers.Application.Garage.UpdateVehicle;
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Api.Errors;
@@ -17,20 +18,20 @@ namespace Customers.Api.Controllers;
 [Route("api/me/vehicles")]
 [Authorize]
 [AllowWithoutStudio]
-public class MyVehiclesController : ControllerBase
+public class MyVehiclesController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<GarageVehicleDto>>> GetAll(
-        [FromServices] GetMyVehiclesHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(cancellationToken);
+        return await sender.Send(new GetMyVehiclesQuery(), cancellationToken);
     }
 
     [HttpPost]
     public async Task<ActionResult<GarageVehicleDto>> Add(
-        GarageVehicleRequest request, [FromServices] AddVehicleHandler handler, CancellationToken cancellationToken)
+        GarageVehicleRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(request, cancellationToken);
+        var result = await sender.Send(new AddVehicleCommand(request), cancellationToken);
         if (!result.Success) return this.ToProblem(result.Error!);
 
         return Created($"/api/me/vehicles/{result.Value!.Id}", result.Value);
@@ -38,19 +39,18 @@ public class MyVehiclesController : ControllerBase
 
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<GarageVehicleDto>> Update(
-        Guid id, GarageVehicleRequest request, [FromServices] UpdateVehicleHandler handler,
-        CancellationToken cancellationToken)
+        Guid id, GarageVehicleRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, request, cancellationToken);
+        var result = await sender.Send(new UpdateVehicleCommand(id, request), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(
-        Guid id, [FromServices] DeleteVehicleHandler handler, CancellationToken cancellationToken)
+        Guid id, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, cancellationToken);
+        var result = await sender.Send(new DeleteVehicleCommand(id), cancellationToken);
 
         return result.Success ? NoContent() : this.ToProblem(result.Error!);
     }

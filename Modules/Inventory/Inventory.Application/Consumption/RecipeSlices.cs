@@ -1,6 +1,7 @@
 using FluentValidation;
 using Inventory.Application.Abstractions;
 using Inventory.Domain.Consumption;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Contracts;
 using Shared.Kernel.Results;
@@ -71,10 +72,13 @@ public static class ConsumptionErrors
         "CONSUMPTION_LINE_NOT_FOUND", "Wizyta nie zużywała tego materiału w tej usłudze.");
 }
 
-public sealed class GetRecipeHandler(IInventoryDbContext db)
+public sealed record GetRecipeQuery(Guid ServiceId) : IQuery<RecipeDto>;
+
+public sealed class GetRecipeHandler(IInventoryDbContext db) : IQueryHandler<GetRecipeQuery, RecipeDto>
 {
-    public async Task<RecipeDto> HandleAsync(Guid serviceId, CancellationToken cancellationToken)
+    public async ValueTask<RecipeDto> Handle(GetRecipeQuery query, CancellationToken cancellationToken)
     {
+        var serviceId = query.ServiceId;
         var recipe = await db.Recipes.AsNoTracking().FirstOrDefaultAsync(r => r.ServiceId == serviceId, cancellationToken);
         return await ToDtoAsync(db, serviceId, recipe, cancellationToken);
     }
@@ -93,13 +97,17 @@ public sealed class GetRecipeHandler(IInventoryDbContext db)
     }
 }
 
+/// <summary>
+/// Replaces what a service uses. The service must be one of the studio's active services (asked of Scheduling).
+/// </summary>
+public sealed record SetRecipeCommand(Guid ServiceId, RecipeRequest Request) : ICommand<Result<RecipeDto>>;
+
 public sealed class SetRecipeHandler(IInventoryDbContext db, ITenantContext tenant, IServiceCatalogSource catalog)
+    : ICommandHandler<SetRecipeCommand, Result<RecipeDto>>
 {
-    /// <summary>
-    /// Replaces what a service uses. The service must be one of the studio's active services (asked of Scheduling).
-    /// </summary>
-    public async Task<Result<RecipeDto>> HandleAsync(Guid serviceId, RecipeRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<RecipeDto>> Handle(SetRecipeCommand command, CancellationToken cancellationToken)
     {
+        var (serviceId, request) = command;
         var studioId = tenant.StudioId ?? throw new InvalidOperationException("A recipe needs a resolved studio.");
         var services = await catalog.GetCatalogAsync(studioId, cancellationToken);
         if (services.Services.All(s => s.ServiceId != serviceId)) return ConsumptionErrors.ServiceNotFound;
@@ -118,16 +126,21 @@ public sealed class SetRecipeHandler(IInventoryDbContext db, ITenantContext tena
     }
 }
 
-public sealed class GetSizeFactorsHandler(IInventoryDbContext db)
+public sealed record GetSizeFactorsQuery : IQuery<SizeFactorsDto>;
+
+public sealed class GetSizeFactorsHandler(IInventoryDbContext db) : IQueryHandler<GetSizeFactorsQuery, SizeFactorsDto>
 {
-    public async Task<SizeFactorsDto> HandleAsync(CancellationToken cancellationToken) =>
+    public async ValueTask<SizeFactorsDto> Handle(GetSizeFactorsQuery query, CancellationToken cancellationToken) =>
         SizeFactorsDto.From(await db.SizeFactors.AsNoTracking().FirstOrDefaultAsync(cancellationToken) ?? MaterialSizeFactors.Default());
 }
 
-public sealed class SetSizeFactorsHandler(IInventoryDbContext db)
+public sealed record SetSizeFactorsCommand(SizeFactorsDto Request) : ICommand<SizeFactorsDto>;
+
+public sealed class SetSizeFactorsHandler(IInventoryDbContext db) : ICommandHandler<SetSizeFactorsCommand, SizeFactorsDto>
 {
-    public async Task<SizeFactorsDto> HandleAsync(SizeFactorsDto request, CancellationToken cancellationToken)
+    public async ValueTask<SizeFactorsDto> Handle(SetSizeFactorsCommand command, CancellationToken cancellationToken)
     {
+        var request = command.Request;
         var factors = await db.SizeFactors.FirstOrDefaultAsync(cancellationToken);
         if (factors == null)
         {

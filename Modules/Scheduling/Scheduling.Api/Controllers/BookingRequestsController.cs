@@ -1,3 +1,4 @@
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Scheduling.Application.Requests;
@@ -17,7 +18,7 @@ namespace Scheduling.Api.Controllers;
 [ApiController]
 [Route("api/booking-requests")]
 [Authorize]
-public class BookingRequestsController : ControllerBase
+public class BookingRequestsController(ISender sender) : ControllerBase
 {
     /// <summary>
     /// Pending requests first, then the newest; <c>?status=Pending</c> shows only one kind.
@@ -25,9 +26,9 @@ public class BookingRequestsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<PagedResponse<BookingRequestDto>>> GetAll(
         [FromQuery] OnlineRequestStatus? status, [FromQuery] PageRequest paging,
-        [FromServices] GetStudioBookingRequestsHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(status, paging, cancellationToken);
+        return await sender.Send(new GetStudioBookingRequestsQuery(status, paging), cancellationToken);
     }
 
     /// <summary>
@@ -36,9 +37,9 @@ public class BookingRequestsController : ControllerBase
     /// </summary>
     [HttpGet("{id:guid}/plan")]
     public async Task<ActionResult<RequestPlanDto>> Plan(
-        Guid id, [FromServices] PlanBookingRequestHandler handler, CancellationToken cancellationToken)
+        Guid id, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, cancellationToken);
+        var result = await sender.Send(new PlanBookingRequestQuery(id), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
@@ -48,20 +49,18 @@ public class BookingRequestsController : ControllerBase
     /// </summary>
     [HttpPost("{id:guid}/accept")]
     public async Task<ActionResult<BookingRequestDto>> Accept(
-        Guid id, AcceptBookingRequest decision, [FromServices] AcceptBookingRequestHandler handler,
-        CancellationToken cancellationToken)
+        Guid id, AcceptBookingRequest decision, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, decision, cancellationToken);
+        var result = await sender.Send(new AcceptBookingRequestCommand(id, decision), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
 
     [HttpPost("{id:guid}/reject")]
     public async Task<ActionResult<BookingRequestDto>> Reject(
-        Guid id, RejectBookingRequest decision, [FromServices] RejectBookingRequestHandler handler,
-        CancellationToken cancellationToken)
+        Guid id, RejectBookingRequest decision, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, decision, cancellationToken);
+        var result = await sender.Send(new RejectBookingRequestCommand(id, decision), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }

@@ -1,3 +1,4 @@
+using Mediator;
 using Shared.Kernel.Vehicles;
 using Crm.Application.Abstractions;
 using Crm.Domain;
@@ -5,10 +6,15 @@ using Shared.Kernel.Results;
 
 namespace Crm.Application.Clients.CreateClient;
 
+public sealed record CreateClientCommand(ClientRequest Request) : ICommand<Result<ClientResponseDto>>;
+
 public sealed class CreateClientHandler(ICrmDbContext db)
+    : ICommandHandler<CreateClientCommand, Result<ClientResponseDto>>
 {
-    public async Task<Result<ClientResponseDto>> HandleAsync(ClientRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<ClientResponseDto>> Handle(
+        CreateClientCommand command, CancellationToken cancellationToken)
     {
+        var request = command.Request;
         if (await db.IsTakenAsync(request.Phone, null, cancellationToken)) return CrmErrors.PhoneTaken(request.Phone);
 
         var client = Client.Create(request.Name, request.Phone, request.Email, request.Nip);

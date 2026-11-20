@@ -1,17 +1,22 @@
 using Identity.Application.Abstractions;
 using Identity.Contracts;
 using Identity.Domain.Invitations;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Results;
 using Shared.Kernel.Tenancy;
 
 namespace Identity.Application.Employees.InviteEmployee;
 
+public sealed record InviteEmployeeCommand(InviteEmployeeRequest Request) : ICommand<Result<Guid>>;
+
 public sealed class InviteEmployeeHandler(
     IIdentityDbContext db, ITenantContext tenant, FrontendSettings frontend, TimeProvider clock)
+    : ICommandHandler<InviteEmployeeCommand, Result<Guid>>
 {
-    public async Task<Result<Guid>> HandleAsync(InviteEmployeeRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<Guid>> Handle(InviteEmployeeCommand command, CancellationToken cancellationToken)
     {
+        var request = command.Request;
         var studioId = tenant.StudioId ?? throw new InvalidOperationException("Inviting needs a resolved studio.");
         var invitingUserId = tenant.UserId ?? throw new InvalidOperationException("Inviting needs a signed-in user.");
         var now = clock.GetUtcNow().UtcDateTime;

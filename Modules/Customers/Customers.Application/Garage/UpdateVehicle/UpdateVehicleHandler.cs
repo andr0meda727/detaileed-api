@@ -1,15 +1,20 @@
 using Customers.Application.Abstractions;
 using Customers.Domain;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Results;
 
 namespace Customers.Application.Garage.UpdateVehicle;
 
+public sealed record UpdateVehicleCommand(Guid Id, GarageVehicleRequest Request) : ICommand<Result<GarageVehicleDto>>;
+
 public sealed class UpdateVehicleHandler(ICustomersDbContext db)
+    : ICommandHandler<UpdateVehicleCommand, Result<GarageVehicleDto>>
 {
-    public async Task<Result<GarageVehicleDto>> HandleAsync(
-        Guid id, GarageVehicleRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<GarageVehicleDto>> Handle(
+        UpdateVehicleCommand command, CancellationToken cancellationToken)
     {
+        var (id, request) = command;
         // Another account's car is filtered out, so it is simply not found
         var vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
         if (vehicle == null) return CustomerErrors.VehicleNotFound;

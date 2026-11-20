@@ -1,3 +1,4 @@
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Application.Abstractions;
 using Shared.Application.Pagination;
@@ -6,11 +7,16 @@ using Shared.Kernel.Results;
 
 namespace Scheduling.Application.Bookings.GetBookings;
 
+public sealed record GetBookingsQuery(PageRequest Paging, bool? IsCompleted, DateTime? FromDate, DateTime? ToDate)
+    : IQuery<Result<PagedResponse<BookingResponseDto>>>;
+
 public sealed class GetBookingsHandler(ISchedulingDbContext db)
+    : IQueryHandler<GetBookingsQuery, Result<PagedResponse<BookingResponseDto>>>
 {
-    public async Task<Result<PagedResponse<BookingResponseDto>>> HandleAsync(
-        PageRequest page, bool? isCompleted, DateTime? fromDate, DateTime? toDate, CancellationToken cancellationToken)
+    public async ValueTask<Result<PagedResponse<BookingResponseDto>>> Handle(
+        GetBookingsQuery request, CancellationToken cancellationToken)
     {
+        var (page, isCompleted, fromDate, toDate) = request;
         if (fromDate > toDate) return SchedulingErrors.InvalidDateRange;
 
         var query = db.Bookings.WithDetails().AsNoTracking();

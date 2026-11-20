@@ -1,13 +1,18 @@
 using Identity.Application.Abstractions;
 using Identity.Domain.Studios;
+using Mediator;
 using Shared.Kernel.Results;
 
 namespace Identity.Application.Studios.RegisterOwner;
 
+public sealed record RegisterOwnerCommand(RegisterOwnerRequest Request) : ICommand<Result>;
+
 public sealed class RegisterOwnerHandler(IIdentityDbContext db, IAuthProvider authProvider, FrontendSettings frontend)
+    : ICommandHandler<RegisterOwnerCommand, Result>
 {
-    public async Task<Result> HandleAsync(RegisterOwnerRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result> Handle(RegisterOwnerCommand command, CancellationToken cancellationToken)
     {
+        var request = command.Request;
         if (await authProvider.UserExistsAsync(request.Email, cancellationToken))
         {
             return Error.Conflict("EMAIL_TAKEN", "Konto z tym adresem e-mail już istnieje.");

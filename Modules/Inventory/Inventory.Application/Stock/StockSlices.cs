@@ -2,6 +2,7 @@ using FluentValidation;
 using Inventory.Application.Abstractions;
 using Inventory.Application.Items;
 using Inventory.Domain.Stock;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Pagination;
 using Shared.Kernel.Pagination;
@@ -43,13 +44,20 @@ public class StockChangeRequestValidator : AbstractValidator<StockChangeRequest>
     }
 }
 
+/// <summary>
+/// Records a delivery or a stocktake as a movement and returns the item with its new stock.
+/// </summary>
+public sealed record RecordStockChangeCommand(Guid ItemId, StockChangeRequest Request)
+    : ICommand<Result<InventoryResponseDto>>;
+
 public sealed class RecordStockChangeHandler(IInventoryDbContext db, ITenantContext tenant)
+    : ICommandHandler<RecordStockChangeCommand, Result<InventoryResponseDto>>
 {
-    /// <summary>
-    /// Records a delivery or a stocktake as a movement and returns the item with its new stock.
-    /// </summary>
-    public async Task<Result<InventoryResponseDto>> HandleAsync(Guid itemId, StockChangeRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<InventoryResponseDto>> Handle(
+        RecordStockChangeCommand command, CancellationToken cancellationToken)
     {
+        var (itemId, request) = command;
+
         // Tenant-filtered, so another studio's item is not found
         var item = await db.Items.Include(i => i.Category).FirstOrDefaultAsync(i => i.Id == itemId, cancellationToken);
         if (item == null) return InventoryErrors.ItemNotFound(itemId);
@@ -62,14 +70,20 @@ public sealed class RecordStockChangeHandler(IInventoryDbContext db, ITenantCont
     }
 }
 
+/// <summary>
+/// An item's stock history, newest first.
+/// </summary>
+public sealed record GetStockMovementsQuery(Guid ItemId, PageRequest Paging)
+    : IQuery<Result<PagedResponse<StockMovementDto>>>;
+
 public sealed class GetStockMovementsHandler(IInventoryDbContext db)
+    : IQueryHandler<GetStockMovementsQuery, Result<PagedResponse<StockMovementDto>>>
 {
-    /// <summary>
-    /// An item's stock history, newest first.
-    /// </summary>
-    public async Task<Result<PagedResponse<StockMovementDto>>> HandleAsync(
-        Guid itemId, PageRequest page, CancellationToken cancellationToken)
+    public async ValueTask<Result<PagedResponse<StockMovementDto>>> Handle(
+        GetStockMovementsQuery query, CancellationToken cancellationToken)
     {
+        var (itemId, page) = query;
+
         if (!await db.Items.AnyAsync(i => i.Id == itemId, cancellationToken)) return InventoryErrors.ItemNotFound(itemId);
 
         var movements = await db.Movements.AsNoTracking()

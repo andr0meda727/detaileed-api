@@ -2,6 +2,7 @@ using Marketplace.Application.Listings;
 using Marketplace.Application.Listings.GetMyListing;
 using Marketplace.Application.Listings.PublishListing;
 using Marketplace.Application.Listings.SaveListing;
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Api.Authorization;
@@ -15,13 +16,13 @@ namespace Marketplace.Api.Controllers;
 [ApiController]
 [Route("api/marketplace/listing")]
 [Authorize]
-public class ListingController : ControllerBase
+public class ListingController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<ListingDto>> Get(
-        [FromServices] GetMyListingHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(cancellationToken);
+        var result = await sender.Send(new GetMyListingQuery(), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
@@ -32,17 +33,17 @@ public class ListingController : ControllerBase
     [HttpPut]
     [Authorize(Policy = Policies.OwnerOnly)]
     public async Task<ActionResult<ListingDto>> Save(
-        ListingRequest request, [FromServices] SaveListingHandler handler, CancellationToken cancellationToken)
+        ListingRequest request, CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(request, cancellationToken);
+        return await sender.Send(new SaveListingCommand(request), cancellationToken);
     }
 
     [HttpPost("publish")]
     [Authorize(Policy = Policies.OwnerOnly)]
     public async Task<IActionResult> Publish(
-        [FromServices] PublishListingHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(publish: true, cancellationToken);
+        var result = await sender.Send(new PublishListingCommand(Publish: true), cancellationToken);
 
         return result.Success ? NoContent() : this.ToProblem(result.Error!);
     }
@@ -50,9 +51,9 @@ public class ListingController : ControllerBase
     [HttpPost("unpublish")]
     [Authorize(Policy = Policies.OwnerOnly)]
     public async Task<IActionResult> Unpublish(
-        [FromServices] PublishListingHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(publish: false, cancellationToken);
+        var result = await sender.Send(new PublishListingCommand(Publish: false), cancellationToken);
 
         return result.Success ? NoContent() : this.ToProblem(result.Error!);
     }

@@ -79,9 +79,9 @@ public class BookingRequestEmailTests
 
         await _email.Received(1).SendAsync("anna@example.com",
             Arg.Is<EmailContent>(c => c.Subject.Contains("potwierdza") && c.Html.Contains("20.11.2026 09:00")
-                && c.Html.Contains("href=\"https://web.test/konto/rezerwacje\"")));
+                && c.Html.Contains("href=\"https://web.test/account/bookings\"")));
         await _email.Received(1).SendAsync("anna@example.com",
             Arg.Is<EmailContent>(c => c.Subject.Contains("nie może") && c.Html.Contains("Brak terminów")
-                && c.Html.Contains("href=\"https://web.test/konto/rezerwacje\"")));
+                && c.Html.Contains("href=\"https://web.test/account/bookings\"")));
     }
 }

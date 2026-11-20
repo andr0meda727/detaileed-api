@@ -1,14 +1,19 @@
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Application.Abstractions;
 using Shared.Kernel.Results;
 
 namespace Scheduling.Application.Catalog.UpdateService;
 
+public sealed record UpdateServiceCommand(Guid Id, ServiceRequest Request) : ICommand<Result<ServiceResponseDto>>;
+
 public sealed class UpdateServiceHandler(ISchedulingDbContext db, TimeProvider clock)
+    : ICommandHandler<UpdateServiceCommand, Result<ServiceResponseDto>>
 {
-    public async Task<Result<ServiceResponseDto>> HandleAsync(
-        Guid id, ServiceRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<ServiceResponseDto>> Handle(
+        UpdateServiceCommand command, CancellationToken cancellationToken)
     {
+        var (id, request) = command;
         // Tenant-filtered, so another studio's service is simply not found
         var service = await db.Services.FirstOrDefaultAsync(s => s.Id == id && s.IsActive, cancellationToken);
         if (service == null) return SchedulingErrors.ServiceNotFound(id);

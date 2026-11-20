@@ -1,15 +1,21 @@
 using Customers.Application.Abstractions;
 using Customers.Domain;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Results;
 using Shared.Kernel.Tenancy;
 
 namespace Customers.Application.Garage.AddVehicle;
 
+public sealed record AddVehicleCommand(GarageVehicleRequest Request) : ICommand<Result<GarageVehicleDto>>;
+
 public sealed class AddVehicleHandler(ICustomersDbContext db, ITenantContext tenant)
+    : ICommandHandler<AddVehicleCommand, Result<GarageVehicleDto>>
 {
-    public async Task<Result<GarageVehicleDto>> HandleAsync(GarageVehicleRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<GarageVehicleDto>> Handle(
+        AddVehicleCommand command, CancellationToken cancellationToken)
     {
+        var request = command.Request;
         var userId = tenant.RequireUser();
         var plate = CustomerVehicle.NormalizePlate(request.LicensePlate);
 

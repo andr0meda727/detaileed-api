@@ -1,3 +1,4 @@
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -15,14 +16,13 @@ namespace Scheduling.Api.Controllers;
 [ApiController]
 [Route("api/availability")]
 [Authorize]
-public class AvailabilityController : ControllerBase
+public class AvailabilityController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<StaffAvailabilityDto>> Get(
-        [FromQuery] AvailabilityQuery query, [FromServices] GetStaffAvailabilityHandler handler,
-        CancellationToken cancellationToken)
+        [FromQuery] AvailabilityQuery query, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(query, cancellationToken);
+        var result = await sender.Send(new GetStaffAvailabilityQuery(query), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
@@ -36,14 +36,13 @@ public class AvailabilityController : ControllerBase
 [AllowAnonymous]
 [AllowWithoutStudio]
 [EnableRateLimiting(RateLimits.Public)]
-public class PublicAvailabilityController : ControllerBase
+public class PublicAvailabilityController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<PublicAvailabilityDto>> Get(
-        Guid studioId, [FromQuery] AvailabilityQuery query, [FromServices] GetPublicAvailabilityHandler handler,
-        CancellationToken cancellationToken)
+        Guid studioId, [FromQuery] AvailabilityQuery query, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(studioId, query, cancellationToken);
+        var result = await sender.Send(new GetPublicAvailabilityQuery(studioId, query), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }

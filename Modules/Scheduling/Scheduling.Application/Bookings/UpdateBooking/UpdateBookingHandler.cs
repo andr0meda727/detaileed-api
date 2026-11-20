@@ -1,4 +1,5 @@
 using Crm.Contracts;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Application.Abstractions;
 using Scheduling.Application.Planning;
@@ -6,12 +7,16 @@ using Shared.Kernel.Results;
 
 namespace Scheduling.Application.Bookings.UpdateBooking;
 
+public sealed record UpdateBookingCommand(Guid Id, BookingRequest Request) : ICommand<Result<BookingResponseDto>>;
+
 public sealed class UpdateBookingHandler(
     ISchedulingDbContext db, IClientDirectory clientDirectory, TimeProvider clock, BookingPlanner planner)
+    : ICommandHandler<UpdateBookingCommand, Result<BookingResponseDto>>
 {
-    public async Task<Result<BookingResponseDto>> HandleAsync(
-        Guid id, BookingRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<BookingResponseDto>> Handle(
+        UpdateBookingCommand command, CancellationToken cancellationToken)
     {
+        var (id, request) = command;
         // Tenant-filtered, so another studio's booking is treated as not found
         var booking = await db.Bookings.Include(b => b.Services).FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
         if (booking == null) return SchedulingErrors.BookingNotFound(id);

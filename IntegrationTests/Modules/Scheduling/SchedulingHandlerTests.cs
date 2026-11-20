@@ -87,7 +87,7 @@ public class SchedulingHandlerTests
         var tenant = Tenant();
         await using var db = PostgresFixture.CreateSchedulingDbContext(tenant);
         var result = await new CreateBookingHandler(db, _directory, tenant, _clock, Planner(db))
-            .HandleAsync(request, Ct);
+            .Handle(new CreateBookingCommand(request), Ct);
         return result.Value!;
     }
 
@@ -119,12 +119,13 @@ public class SchedulingHandlerTests
     public async Task Update_SwapsServicesAndReschedules()
     {
         await using var setup = Db();
-        var extra = await new CreateServiceHandler(setup, Tenant(), _clock).HandleAsync(new ServiceRequest("Ceramika"), Ct);
+        var extra = await new CreateServiceHandler(setup, Tenant(), _clock)
+            .Handle(new CreateServiceCommand(new ServiceRequest("Ceramika")), Ct);
         var created = await CreateAsync(Request(3));
 
         await using var db = Db();
         var updated = await new UpdateBookingHandler(db, _directory, _clock, Planner(db))
-            .HandleAsync(created.Id, Request(5, extra.Id), Ct);
+            .Handle(new UpdateBookingCommand(created.Id, Request(5, extra.Id)), Ct);
 
         Assert.That(updated.Value!.Services, Is.EqualTo(new[] { "Ceramika" }));
         Assert.That(updated.Value.ScheduledAt, Is.EqualTo(Now.UtcDateTime.AddDays(5)).Within(TimeSpan.FromMilliseconds(1)));
@@ -135,29 +136,33 @@ public class SchedulingHandlerTests
     {
         var created = await CreateAsync(Request(3));
         await using var db = Db();
-        await new CancelBookingHandler(db, _clock).HandleAsync(created.Id, Ct);
+        await new CancelBookingHandler(db, _clock).Handle(new CancelBookingCommand(created.Id), Ct);
 
         await using var db2 = Db();
-        var complete = await new CompleteBookingHandler(db2, _clock).HandleAsync(created.Id, Ct);
-        var update = await new UpdateBookingHandler(db2, _directory, _clock, Planner(db2)).HandleAsync(created.Id, Request(4), Ct);
+        var complete = await new CompleteBookingHandler(db2, _clock).Handle(new CompleteBookingCommand(created.Id), Ct);
+        var update = await new UpdateBookingHandler(db2, _directory, _clock, Planner(db2))
+            .Handle(new UpdateBookingCommand(created.Id, Request(4)), Ct);
 
         Assert.That(complete.ErrorCode, Is.EqualTo("BOOKING_ALREADY_FINISHED"));
         Assert.That(update.ErrorCode, Is.EqualTo("BOOKING_ALREADY_FINISHED"));
-        Assert.That((await new GetBookingHandler(db2).HandleAsync(created.Id, Ct)).Value!.Status, Is.EqualTo("Cancelled"));
+        Assert.That((await new GetBookingHandler(db2)
+            .Handle(new GetBookingQuery(created.Id), Ct)).Value!.Status, Is.EqualTo("Cancelled"));
     }
 
     [Test]
     public async Task DeactivatedService_DisappearsFromTheListButStaysOnBookings()
     {
         await using var db = Db();
-        var service = await new CreateServiceHandler(db, Tenant(), _clock).HandleAsync(new ServiceRequest("Pranie tapicerki"), Ct);
+        var service = await new CreateServiceHandler(db, Tenant(), _clock)
+            .Handle(new CreateServiceCommand(new ServiceRequest("Pranie tapicerki")), Ct);
         var created = await CreateAsync(Request(3, service.Id));
 
-        await new DeleteServiceHandler(db, _clock).HandleAsync(service.Id, Ct);
+        await new DeleteServiceHandler(db, _clock).Handle(new DeleteServiceCommand(service.Id), Ct);
 
         await using var readDb = Db();
-        Assert.That((await new GetServicesHandler(readDb).HandleAsync(Ct)).Select(s => s.Id), Does.Not.Contain(service.Id));
-        Assert.That((await new GetBookingHandler(readDb).HandleAsync(created.Id, Ct)).Value!.Services,
+        Assert.That((await new GetServicesHandler(readDb)
+            .Handle(new GetServicesQuery(), Ct)).Select(s => s.Id), Does.Not.Contain(service.Id));
+        Assert.That((await new GetBookingHandler(readDb).Handle(new GetBookingQuery(created.Id), Ct)).Value!.Services,
             Is.EqualTo(new[] { "Pranie tapicerki" }));
     }
 
@@ -173,11 +178,14 @@ public class SchedulingHandlerTests
         var pages = new List<Guid>();
         for (var page = 1; page <= 3; page++)
         {
-            var result = await handler.HandleAsync(new PageRequest { Page = page, PageSize = 2 }, null, null, null, Ct);
+            var result = await handler
+                .Handle(new GetBookingsQuery(new PageRequest { Page = page, PageSize = 2 }, null, null, null), Ct);
             Assert.That(result.Value!.TotalCount, Is.EqualTo(5));
             pages.AddRange(result.Value.Items.Select(b => b.Id));
         }
-        var future = await handler.HandleAsync(new PageRequest { PageSize = 1 }, null, Now.UtcDateTime.AddHours(12), null, Ct);
+        var future = await handler
+            .Handle(new GetBookingsQuery(
+                new PageRequest { PageSize = 1 }, null, Now.UtcDateTime.AddHours(12), null), Ct);
 
         Assert.That(pages, Is.EqualTo(new[] { _seed.StudioA.BookingId }.Concat(later)));
         Assert.That(future.Value!.TotalCount, Is.EqualTo(4));
@@ -189,8 +197,8 @@ public class SchedulingHandlerTests
     {
         await using var db = Db();
 
-        var result = await new GetBookingsHandler(db).HandleAsync(
-            new PageRequest(), null, Now.UtcDateTime, Now.UtcDateTime.AddDays(-1), Ct);
+        var result = await new GetBookingsHandler(db).Handle(new GetBookingsQuery(
+            new PageRequest(), null, Now.UtcDateTime, Now.UtcDateTime.AddDays(-1)), Ct);
 
         Assert.That(result.ErrorCode, Is.EqualTo("INVALID_DATE_RANGE"));
     }
@@ -201,13 +209,15 @@ public class SchedulingHandlerTests
         ServiceResponseDto created;
         await using (var db = Db())
         {
-            created = await new CreateServiceHandler(db, Tenant(), _clock).HandleAsync(new ServiceRequest("Pranie tapicerki",
+            created = await new CreateServiceHandler(db, Tenant(), _clock)
+                .Handle(new CreateServiceCommand(new ServiceRequest("Pranie tapicerki",
                 ServiceCategory.Interior,
-                [new ServicePriceDto(VehicleSize.Large, 349.99m), new ServicePriceDto(VehicleSize.Small, 249m)]), Ct);
+                [new ServicePriceDto(VehicleSize.Large, 349.99m), new ServicePriceDto(VehicleSize.Small, 249m)])), Ct);
         }
 
         await using var read = Db();
-        var service = (await new GetServicesHandler(read).HandleAsync(Ct)).Single(s => s.Id == created.Id);
+        var service = (await new GetServicesHandler(read)
+            .Handle(new GetServicesQuery(), Ct)).Single(s => s.Id == created.Id);
 
         Assert.That(service.Category, Is.EqualTo(ServiceCategory.Interior));
         Assert.That(service.Prices, Is.EqualTo(new[]
@@ -222,25 +232,27 @@ public class SchedulingHandlerTests
         Guid id;
         await using (var db = Db())
         {
-            id = (await new CreateServiceHandler(db, Tenant(), _clock).HandleAsync(new ServiceRequest("Powłoka", ServiceCategory.Ceramic,
-                [new ServicePriceDto(VehicleSize.Small, 1000m), new ServicePriceDto(VehicleSize.Medium, 1200m)]), Ct)).Id;
+            id = (await new CreateServiceHandler(db, Tenant(), _clock)
+                .Handle(new CreateServiceCommand(new ServiceRequest("Powłoka", ServiceCategory.Ceramic,
+                [new ServicePriceDto(VehicleSize.Small, 1000m), new ServicePriceDto(VehicleSize.Medium, 1200m)])), Ct)).Id;
         }
 
         await using (var db = Db())
         {
-            var replaced = await new UpdateServiceHandler(db, _clock).HandleAsync(id,
-                new ServiceRequest("Powłoka", null, [new ServicePriceDto(VehicleSize.XL, 2000m)]), Ct);
+            var replaced = await new UpdateServiceHandler(db, _clock).Handle(new UpdateServiceCommand(id,
+                new ServiceRequest("Powłoka", null, [new ServicePriceDto(VehicleSize.XL, 2000m)])), Ct);
             Assert.That(replaced.Value!.Prices, Is.EqualTo(new[] { new ServicePriceDto(VehicleSize.XL, 2000m) }));
             Assert.That(replaced.Value.Category, Is.EqualTo(ServiceCategory.Ceramic));
         }
 
         await using (var db = Db())
         {
-            await new UpdateServiceHandler(db, _clock).HandleAsync(id, new ServiceRequest("Powłoka 3 lata"), Ct);
+            await new UpdateServiceHandler(db, _clock)
+                .Handle(new UpdateServiceCommand(id, new ServiceRequest("Powłoka 3 lata")), Ct);
         }
 
         await using var read = Db();
-        var service = (await new GetServicesHandler(read).HandleAsync(Ct)).Single(s => s.Id == id);
+        var service = (await new GetServicesHandler(read).Handle(new GetServicesQuery(), Ct)).Single(s => s.Id == id);
         Assert.That(service.Name, Is.EqualTo("Powłoka 3 lata"));
         Assert.That(service.Prices, Is.EqualTo(new[] { new ServicePriceDto(VehicleSize.XL, 2000m) }));
     }
@@ -250,7 +262,8 @@ public class SchedulingHandlerTests
     {
         await using var db = Db();
 
-        var result = await new UpdateServiceHandler(db, _clock).HandleAsync(_seed.StudioB.ServiceId, new ServiceRequest("Przejęta"), Ct);
+        var result = await new UpdateServiceHandler(db, _clock)
+            .Handle(new UpdateServiceCommand(_seed.StudioB.ServiceId, new ServiceRequest("Przejęta")), Ct);
 
         Assert.That(result.ErrorCode, Is.EqualTo("SERVICE_NOT_FOUND"));
     }
@@ -270,8 +283,9 @@ public class SchedulingHandlerTests
         Guid ceramicId;
         await using (var db = Db())
         {
-            ceramicId = (await new CreateServiceHandler(db, Tenant(), _clock).HandleAsync(new ServiceRequest("Ceramika",
-                ServiceCategory.Ceramic, [new ServicePriceDto(VehicleSize.Large, 1500m)]), Ct)).Id;
+            ceramicId = (await new CreateServiceHandler(db, Tenant(), _clock)
+                .Handle(new CreateServiceCommand(new ServiceRequest("Ceramika",
+                ServiceCategory.Ceramic, [new ServicePriceDto(VehicleSize.Large, 1500m)])), Ct)).Id;
         }
 
         var afterCreate = await LatestCatalogAsync();
@@ -282,7 +296,7 @@ public class SchedulingHandlerTests
 
         await using (var db = Db())
         {
-            await new DeleteServiceHandler(db, _clock).HandleAsync(_seed.StudioA.ServiceId, Ct);
+            await new DeleteServiceHandler(db, _clock).Handle(new DeleteServiceCommand(_seed.StudioA.ServiceId), Ct);
         }
 
         var afterDelete = await LatestCatalogAsync();

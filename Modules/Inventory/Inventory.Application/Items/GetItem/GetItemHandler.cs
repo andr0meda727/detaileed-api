@@ -1,13 +1,17 @@
 using Inventory.Application.Abstractions;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Results;
 
 namespace Inventory.Application.Items.GetItem;
 
-public sealed class GetItemHandler(IInventoryDbContext db)
+public sealed record GetItemQuery(Guid Id) : IQuery<Result<InventoryResponseDto>>;
+
+public sealed class GetItemHandler(IInventoryDbContext db) : IQueryHandler<GetItemQuery, Result<InventoryResponseDto>>
 {
-    public async Task<Result<InventoryResponseDto>> HandleAsync(Guid id, CancellationToken cancellationToken)
+    public async ValueTask<Result<InventoryResponseDto>> Handle(GetItemQuery query, CancellationToken cancellationToken)
     {
+        var id = query.Id;
         var item = await db.Items
             .Include(i => i.Category)
             .AsNoTracking()

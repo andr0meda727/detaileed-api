@@ -1,6 +1,7 @@
 using FluentValidation;
 using Inventory.Application.Abstractions;
 using Inventory.Domain.Consumption;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Contracts;
 using Shared.Kernel.Results;
@@ -47,10 +48,15 @@ public class CorrectConsumptionRequestValidator : AbstractValidator<CorrectConsu
     }
 }
 
-public sealed class GetConsumptionHandler(IInventoryDbContext db)
+public sealed record GetConsumptionQuery(Guid BookingId) : IQuery<Result<ConsumptionDto>>;
+
+public sealed class GetConsumptionHandler(IInventoryDbContext db) : IQueryHandler<GetConsumptionQuery, Result<ConsumptionDto>>
 {
-    public async Task<Result<ConsumptionDto>> HandleAsync(Guid bookingId, CancellationToken cancellationToken)
+    public async ValueTask<Result<ConsumptionDto>> Handle(
+        GetConsumptionQuery query, CancellationToken cancellationToken)
     {
+        var bookingId = query.BookingId;
+
         // Tenant-filtered, so another studio's visit is not found
         var consumption = await db.Consumptions.AsNoTracking().FirstOrDefaultAsync(c => c.BookingId == bookingId, cancellationToken);
         if (consumption == null) return ConsumptionErrors.ConsumptionNotFound;
@@ -73,16 +79,22 @@ public sealed class GetConsumptionHandler(IInventoryDbContext db)
     }
 }
 
+/// <summary>
+/// Staff say what the visit really used. Stock moves by the difference from what was deducted so far, and each
+/// line's first actual amount teaches the calibration for that service and material (later edits only fix stock,
+/// so one visit is never learned twice).
+/// </summary>
+public sealed record CorrectConsumptionCommand(Guid BookingId, CorrectConsumptionRequest Request)
+    : ICommand<Result<ConsumptionDto>>;
+
 public sealed class CorrectConsumptionHandler(IInventoryDbContext db, ITenantContext tenant)
+    : ICommandHandler<CorrectConsumptionCommand, Result<ConsumptionDto>>
 {
-    /// <summary>
-    /// Staff say what the visit really used. Stock moves by the difference from what was deducted so far, and each
-    /// line's first actual amount teaches the calibration for that service and material (later edits only fix stock,
-    /// so one visit is never learned twice).
-    /// </summary>
-    public async Task<Result<ConsumptionDto>> HandleAsync(
-        Guid bookingId, CorrectConsumptionRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<ConsumptionDto>> Handle(
+        CorrectConsumptionCommand command, CancellationToken cancellationToken)
     {
+        var (bookingId, request) = command;
+
         var consumption = await db.Consumptions.FirstOrDefaultAsync(c => c.BookingId == bookingId, cancellationToken);
         if (consumption == null) return ConsumptionErrors.ConsumptionNotFound;
         if (request.Lines.Any(l => !consumption.Has(l.ServiceId, l.ItemId))) return ConsumptionErrors.UnknownLine;
@@ -118,9 +130,11 @@ public sealed class CorrectConsumptionHandler(IInventoryDbContext db, ITenantCon
     }
 }
 
-public sealed class GetAccuracyHandler(IInventoryDbContext db)
+public sealed record GetAccuracyQuery : IQuery<List<AccuracyDto>>;
+
+public sealed class GetAccuracyHandler(IInventoryDbContext db) : IQueryHandler<GetAccuracyQuery, List<AccuracyDto>>
 {
-    public async Task<List<AccuracyDto>> HandleAsync(CancellationToken cancellationToken)
+    public async ValueTask<List<AccuracyDto>> Handle(GetAccuracyQuery query, CancellationToken cancellationToken)
     {
         var calibrations = await db.Calibrations.AsNoTracking().ToListAsync(cancellationToken);
         var ids = calibrations.Select(c => c.ItemId).Distinct().ToList();
@@ -136,8 +150,11 @@ public sealed class GetAccuracyHandler(IInventoryDbContext db)
     }
 }
 
+public sealed record GetForecastQuery : IQuery<List<ForecastDto>>;
+
 public sealed class GetForecastHandler(
     IInventoryDbContext db, ITenantContext tenant, IUpcomingBookingsSource upcoming, TimeProvider clock)
+    : IQueryHandler<GetForecastQuery, List<ForecastDto>>
 {
     public const int HistoryDays = 30;
     public const int PlannedDays = 14;
@@ -145,7 +162,7 @@ public sealed class GetForecastHandler(
     /// <summary>
     /// For every material: how fast it goes (from the ledger) and whether the visits already booked will run it out.
     /// </summary>
-    public async Task<List<ForecastDto>> HandleAsync(CancellationToken cancellationToken)
+    public async ValueTask<List<ForecastDto>> Handle(GetForecastQuery query, CancellationToken cancellationToken)
     {
         var studioId = tenant.StudioId ?? throw new InvalidOperationException("The forecast needs a resolved studio.");
         var now = clock.GetUtcNow().UtcDateTime;

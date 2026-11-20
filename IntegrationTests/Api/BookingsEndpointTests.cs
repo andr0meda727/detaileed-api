@@ -81,8 +81,12 @@ public class BookingsEndpointTests
             new { name = "", prices = new[] { new { vehicleSize = "Large", price = -1m } } });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-        var errors = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errors");
-        var keys = errors.EnumerateObject().Select(e => e.Name).ToList();
+        Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/problem+json"));
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.That(body.GetProperty("status").GetInt32(), Is.EqualTo(400));
+        Assert.That(body.GetProperty("title").GetString(), Is.EqualTo("One or more validation errors occurred."));
+        Assert.That(body.TryGetProperty("traceId", out _), Is.True);
+        var keys = body.GetProperty("errors").EnumerateObject().Select(e => e.Name).ToList();
         Assert.That(keys, Is.EquivalentTo(new[] { "Name", "Prices[0].Price" }));
     }
 

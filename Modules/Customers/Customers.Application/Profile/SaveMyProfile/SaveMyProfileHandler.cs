@@ -1,17 +1,22 @@
 using Customers.Application.Abstractions;
 using Customers.Domain;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Tenancy;
 
 namespace Customers.Application.Profile.SaveMyProfile;
 
+public sealed record SaveMyProfileCommand(ProfileRequest Request) : ICommand<ProfileDto>;
+
 public sealed class SaveMyProfileHandler(ICustomersDbContext db, ITenantContext tenant)
+    : ICommandHandler<SaveMyProfileCommand, ProfileDto>
 {
     /// <summary>
     /// Creates the caller's profile or updates it.
     /// </summary>
-    public async Task<ProfileDto> HandleAsync(ProfileRequest request, CancellationToken cancellationToken)
+    public async ValueTask<ProfileDto> Handle(SaveMyProfileCommand command, CancellationToken cancellationToken)
     {
+        var request = command.Request;
         var userId = tenant.RequireUser();
 
         var profile = await db.Profiles.SingleOrDefaultAsync(cancellationToken);

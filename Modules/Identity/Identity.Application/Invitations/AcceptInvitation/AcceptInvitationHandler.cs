@@ -1,14 +1,19 @@
 using Identity.Application.Abstractions;
 using Identity.Domain.Invitations;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Results;
 
 namespace Identity.Application.Invitations.AcceptInvitation;
 
+public sealed record AcceptInvitationCommand(Guid Token, Guid UserId) : ICommand<Result>;
+
 public sealed class AcceptInvitationHandler(IIdentityDbContext db, TimeProvider clock)
+    : ICommandHandler<AcceptInvitationCommand, Result>
 {
-    public async Task<Result> HandleAsync(Guid token, Guid userId, CancellationToken cancellationToken)
+    public async ValueTask<Result> Handle(AcceptInvitationCommand command, CancellationToken cancellationToken)
     {
+        var (token, userId) = command;
         var invitation = await db.FindInvitationByTokenAsync(token, cancellationToken);
         if (invitation == null) return InvitationErrors.NotFound;
 

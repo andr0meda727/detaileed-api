@@ -11,5 +11,5 @@ public sealed record EmailLinks(string DashboardBaseUrl, string WebBaseUrl)
         $"{DashboardBaseUrl.TrimEnd('/')}/s/{studioId}/requests?id={requestId}";
 
     /// <summary>The customer's own bookings and requests.</summary>
-    public string CustomerBookings() => $"{WebBaseUrl.TrimEnd('/')}/konto/rezerwacje";
+    public string CustomerBookings() => $"{WebBaseUrl.TrimEnd('/')}/account/bookings";
 }

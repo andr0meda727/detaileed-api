@@ -1,15 +1,19 @@
 using Identity.Contracts;
 using Marketplace.Application.Abstractions;
 using Marketplace.Domain;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Results;
 using Shared.Kernel.Tenancy;
 
 namespace Marketplace.Application.Listings.GetMyListing;
 
+public sealed record GetMyListingQuery : IQuery<Result<ListingDto>>;
+
 public sealed class GetMyListingHandler(IMarketplaceDbContext db, ITenantContext tenant, IStudioDirectory studios)
+    : IQueryHandler<GetMyListingQuery, Result<ListingDto>>
 {
-    public async Task<Result<ListingDto>> HandleAsync(CancellationToken cancellationToken)
+    public async ValueTask<Result<ListingDto>> Handle(GetMyListingQuery query, CancellationToken cancellationToken)
     {
         var studioId = tenant.StudioId ?? throw new InvalidOperationException("This needs a resolved studio.");
 

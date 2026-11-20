@@ -24,8 +24,17 @@ public class ReportsController : ControllerBase
     [HttpPost("bookings")]
     public async Task<IActionResult> GenerateBookingsReport(
         BookingsReportRequest request, [FromServices] ITenantContext tenant, [FromServices] IStudioDirectory studios,
-        [FromServices] IPublishEndpoint bus, CancellationToken cancellationToken)
+        [FromServices] IPublishEndpoint bus, [FromServices] IValidator<BookingsReportRequest> validator,
+        CancellationToken cancellationToken)
     {
+        // No command goes through the mediator here, so the request is validated explicitly
+        var validation = await validator.ValidateAsync(request, cancellationToken);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            return ValidationProblem(ModelState);
+        }
+
         if (tenant.StudioId is not { } studioId)
         {
             return this.ToProblem(Error.Forbidden("STUDIO_REQUIRED", "A report needs a studio."));

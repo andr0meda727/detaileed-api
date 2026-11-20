@@ -2,6 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using IntegrationTests.Api;
 using IntegrationTests.Infrastructure;
+using MassTransit;
+using Microsoft.Extensions.DependencyInjection;
+using Notifications.Infrastructure.Consumers;
 
 namespace IntegrationTests.Modules.Notifications;
 
@@ -23,6 +26,15 @@ public class ReportsEndpointTests
 
     [OneTimeTearDown]
     public async Task TearDownAsync() => await _factory.DisposeAsync();
+
+    [Test]
+    public void ReportRendering_IsLimitedToAFewAtATime()
+    {
+        // The bus discovers the definition next to the consumer; without it, a burst of reports renders all at once
+        var definition = _factory.Services.GetRequiredService<IConsumerDefinition<BookingsReportConsumer>>();
+
+        Assert.That(definition.ConcurrentMessageLimit, Is.EqualTo(BookingsReportConsumerDefinition.MaxConcurrentReports));
+    }
 
     [Test]
     public async Task InvertedPeriod_IsAValidationProblem()

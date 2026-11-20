@@ -1,3 +1,4 @@
+using Mediator;
 using Scheduling.Application.Abstractions;
 using Scheduling.Domain.Planning;
 using Shared.Kernel.Results;
@@ -6,22 +7,29 @@ namespace Scheduling.Application.Planning.Schedule;
 
 // The schedule is one small aggregate per studio, so its four use cases share a file.
 
-public sealed class GetScheduleHandler(ISchedulingDbContext db)
+public sealed record GetScheduleQuery : IQuery<ScheduleDto>;
+
+public sealed class GetScheduleHandler(ISchedulingDbContext db) : IQueryHandler<GetScheduleQuery, ScheduleDto>
 {
     /// <summary>
     /// The studio's schedule, or the defaults (no opening hours, so planning is off) when it never set one.
     /// </summary>
-    public async Task<ScheduleDto> HandleAsync(CancellationToken cancellationToken)
+    public async ValueTask<ScheduleDto> Handle(GetScheduleQuery query, CancellationToken cancellationToken)
     {
         var schedule = await db.FindOrCreateScheduleAsync(addIfMissing: false, cancellationToken);
         return await db.ToDtoAsync(schedule, cancellationToken);
     }
 }
 
+public sealed record UpdateScheduleCommand(ScheduleRequest Request) : ICommand<Result<ScheduleDto>>;
+
 public sealed class UpdateScheduleHandler(ISchedulingDbContext db)
+    : ICommandHandler<UpdateScheduleCommand, Result<ScheduleDto>>
 {
-    public async Task<Result<ScheduleDto>> HandleAsync(ScheduleRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<ScheduleDto>> Handle(
+        UpdateScheduleCommand command, CancellationToken cancellationToken)
     {
+        var request = command.Request;
         var schedule = await db.FindOrCreateScheduleAsync(addIfMissing: true, cancellationToken);
 
         var hours = schedule.SetOpeningHours(
@@ -38,13 +46,16 @@ public sealed class UpdateScheduleHandler(ISchedulingDbContext db)
     }
 }
 
-public sealed class CloseDayHandler(ISchedulingDbContext db)
+public sealed record CloseDayCommand(ClosureRequest Request) : ICommand<ScheduleDto>;
+
+public sealed class CloseDayHandler(ISchedulingDbContext db) : ICommandHandler<CloseDayCommand, ScheduleDto>
 {
     /// <summary>
     /// Closes the studio for a local day (a holiday). Existing bookings that day stay; staff move them themselves.
     /// </summary>
-    public async Task<ScheduleDto> HandleAsync(ClosureRequest request, CancellationToken cancellationToken)
+    public async ValueTask<ScheduleDto> Handle(CloseDayCommand command, CancellationToken cancellationToken)
     {
+        var request = command.Request;
         var schedule = await db.FindOrCreateScheduleAsync(addIfMissing: true, cancellationToken);
 
         schedule.Close(request.Date, request.Reason);
@@ -54,12 +65,15 @@ public sealed class CloseDayHandler(ISchedulingDbContext db)
     }
 }
 
-public sealed class ReopenDayHandler(ISchedulingDbContext db)
+public sealed record ReopenDayCommand(DateOnly Date) : ICommand<Result>;
+
+public sealed class ReopenDayHandler(ISchedulingDbContext db) : ICommandHandler<ReopenDayCommand, Result>
 {
     public static readonly Error NotClosed = Error.NotFound("CLOSURE_NOT_FOUND", "Ten dzień nie jest oznaczony jako zamknięty.");
 
-    public async Task<Result> HandleAsync(DateOnly date, CancellationToken cancellationToken)
+    public async ValueTask<Result> Handle(ReopenDayCommand command, CancellationToken cancellationToken)
     {
+        var date = command.Date;
         var schedule = await db.FindOrCreateScheduleAsync(addIfMissing: false, cancellationToken);
         if (!schedule.Reopen(date)) return NotClosed;
 
