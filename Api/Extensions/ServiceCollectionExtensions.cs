@@ -1,4 +1,5 @@
-﻿using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+﻿using Shared.Application.Messaging.Behaviors;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
 namespace Api.Extensions;
 
@@ -10,6 +11,15 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddFluentValidationAutoValidation();
+
+        // Every use case is a command or query sent through ISender. The source generator finds the handlers in the
+        // modules' Application assemblies at compile time; they are scoped because they use the tenant DbContexts.
+        services.AddMediator(options =>
+        {
+            options.ServiceLifetime = ServiceLifetime.Scoped;
+            // Outermost first
+            options.PipelineBehaviors = [typeof(LoggingBehavior<,>)];
+        });
 
         return services;
     }
