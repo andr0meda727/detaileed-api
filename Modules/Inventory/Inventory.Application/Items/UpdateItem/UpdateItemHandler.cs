@@ -1,14 +1,18 @@
 using Inventory.Application.Abstractions;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Results;
 
 namespace Inventory.Application.Items.UpdateItem;
 
-public sealed class UpdateItemHandler(IInventoryDbContext db)
+public sealed record UpdateItemCommand(Guid Id, InventoryCreateDto Request) : ICommand<Result<InventoryResponseDto>>;
+
+public sealed class UpdateItemHandler(IInventoryDbContext db) : ICommandHandler<UpdateItemCommand, Result<InventoryResponseDto>>
 {
-    public async Task<Result<InventoryResponseDto>> HandleAsync(
-        Guid id, InventoryCreateDto request, CancellationToken cancellationToken)
+    public async ValueTask<Result<InventoryResponseDto>> Handle(
+        UpdateItemCommand command, CancellationToken cancellationToken)
     {
+        var (id, request) = command;
         // Tenant-filtered, so an ID from another studio is treated as not found
         var item = await db.Items.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
         if (item == null) return InventoryErrors.ItemNotFound(id);

@@ -41,7 +41,7 @@ public class InventoryTenantIsolationTests
     {
         await using var db = DbForStudio(_seed.StudioA.StudioId);
 
-        var categories = await new GetCategoriesHandler(db).HandleAsync(CancellationToken.None);
+        var categories = await new GetCategoriesHandler(db).Handle(new GetCategoriesQuery(), CancellationToken.None);
 
         Assert.That(categories.Select(c => c.Id), Does.Contain(_seed.StudioA.InventoryCategoryId));
         Assert.That(categories.Select(c => c.Id), Does.Not.Contain(_seed.StudioB.InventoryCategoryId));
@@ -53,8 +53,8 @@ public class InventoryTenantIsolationTests
         await using var db = DbForStudio(_seed.StudioA.StudioId);
         var handler = new GetItemsHandler(db);
 
-        var all = await handler.HandleAsync(lowStockOnly: false, new PageRequest(), CancellationToken.None);
-        var lowStock = await handler.HandleAsync(lowStockOnly: true, new PageRequest(), CancellationToken.None);
+        var all = await handler.Handle(new GetItemsQuery(LowStockOnly: false, new PageRequest()), CancellationToken.None);
+        var lowStock = await handler.Handle(new GetItemsQuery(LowStockOnly: true, new PageRequest()), CancellationToken.None);
 
         Assert.That(all.Items.Select(i => i.StudioId), Is.All.EqualTo(_seed.StudioA.StudioId));
         Assert.That(all.Items.Select(i => i.Id), Does.Contain(_seed.StudioA.InventoryId));
@@ -66,7 +66,7 @@ public class InventoryTenantIsolationTests
     {
         await using var db = DbForStudio(_seed.StudioA.StudioId);
 
-        var result = await new GetItemHandler(db).HandleAsync(_seed.StudioB.InventoryId, CancellationToken.None);
+        var result = await new GetItemHandler(db).Handle(new GetItemQuery(_seed.StudioB.InventoryId), CancellationToken.None);
 
         Assert.That(result.ErrorCode, Is.EqualTo("INVENTORY_ITEM_NOT_FOUND"));
     }
@@ -78,8 +78,8 @@ public class InventoryTenantIsolationTests
 
         Assert.Multiple(async () =>
         {
-            Assert.That(await new GetCategoriesHandler(db).HandleAsync(CancellationToken.None), Is.Empty);
-            Assert.That((await new GetItemsHandler(db).HandleAsync(false, new PageRequest(), CancellationToken.None)).Items, Is.Empty);
+            Assert.That(await new GetCategoriesHandler(db).Handle(new GetCategoriesQuery(), CancellationToken.None), Is.Empty);
+            Assert.That((await new GetItemsHandler(db).Handle(new GetItemsQuery(false, new PageRequest()), CancellationToken.None)).Items, Is.Empty);
         });
     }
 
@@ -88,15 +88,15 @@ public class InventoryTenantIsolationTests
     {
         await using (var db = DbForStudio(_seed.StudioA.StudioId))
         {
-            var result = await new UpdateItemHandler(db).HandleAsync(_seed.StudioB.InventoryId,
-                new InventoryCreateDto { Name = "Hijacked", Unit = "l", Stock = 0 }, CancellationToken.None);
+            var result = await new UpdateItemHandler(db).Handle(new UpdateItemCommand(_seed.StudioB.InventoryId,
+                new InventoryCreateDto { Name = "Hijacked", Unit = "l", Stock = 0 }), CancellationToken.None);
 
             Assert.That(result.ErrorCode, Is.EqualTo("INVENTORY_ITEM_NOT_FOUND"));
         }
 
         await using (var db = DbForStudio(_seed.StudioB.StudioId))
         {
-            var item = await new GetItemHandler(db).HandleAsync(_seed.StudioB.InventoryId, CancellationToken.None);
+            var item = await new GetItemHandler(db).Handle(new GetItemQuery(_seed.StudioB.InventoryId), CancellationToken.None);
             Assert.That(item.Value!.Name, Is.EqualTo("Wax"));
         }
     }

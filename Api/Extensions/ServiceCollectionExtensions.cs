@@ -1,4 +1,5 @@
-﻿using Shared.Application.Messaging.Behaviors;
+﻿using Inventory.Application.Abstractions;
+using Shared.Application.Messaging.Behaviors;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
 namespace Api.Extensions;
@@ -17,6 +18,10 @@ public static class ServiceCollectionExtensions
         services.AddMediator(options =>
         {
             options.ServiceLifetime = ServiceLifetime.Scoped;
+            options.Assemblies =
+            [
+                typeof(IInventoryDbContext)
+            ];
             // Outermost first
             options.PipelineBehaviors = [typeof(LoggingBehavior<,>)];
         });

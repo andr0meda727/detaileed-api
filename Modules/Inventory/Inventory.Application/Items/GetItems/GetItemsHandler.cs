@@ -1,18 +1,21 @@
 using Inventory.Application.Abstractions;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Pagination;
 using Shared.Kernel.Pagination;
 
 namespace Inventory.Application.Items.GetItems;
 
-public sealed class GetItemsHandler(IInventoryDbContext db)
+public sealed record GetItemsQuery(bool LowStockOnly, PageRequest Paging) : IQuery<PagedResponse<InventoryResponseDto>>;
+
+public sealed class GetItemsHandler(IInventoryDbContext db) : IQueryHandler<GetItemsQuery, PagedResponse<InventoryResponseDto>>
 {
-    public async Task<PagedResponse<InventoryResponseDto>> HandleAsync(
-        bool lowStockOnly, PageRequest page, CancellationToken cancellationToken)
+    public async ValueTask<PagedResponse<InventoryResponseDto>> Handle(
+        GetItemsQuery request, CancellationToken cancellationToken)
     {
         var query = db.Items.Include(i => i.Category).AsNoTracking();
 
-        if (lowStockOnly)
+        if (request.LowStockOnly)
         {
             // Same rule as InventoryItem.IsLowStock, written so it translates to SQL
             query = query.Where(i => i.MinStock != null && i.Stock < i.MinStock);
@@ -20,7 +23,7 @@ public sealed class GetItemsHandler(IInventoryDbContext db)
 
         var items = await query
             .OrderBy(i => i.Name).ThenBy(i => i.Id)
-            .ToPagedResponseAsync(page, cancellationToken);
+            .ToPagedResponseAsync(request.Paging, cancellationToken);
 
         return items.Map(InventoryResponseDto.From);
     }

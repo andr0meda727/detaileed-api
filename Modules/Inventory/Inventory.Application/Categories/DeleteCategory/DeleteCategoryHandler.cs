@@ -1,13 +1,17 @@
 using Inventory.Application.Abstractions;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Results;
 
 namespace Inventory.Application.Categories.DeleteCategory;
 
-public sealed class DeleteCategoryHandler(IInventoryDbContext db)
+public sealed record DeleteCategoryCommand(Guid Id) : ICommand<Result>;
+
+public sealed class DeleteCategoryHandler(IInventoryDbContext db) : ICommandHandler<DeleteCategoryCommand, Result>
 {
-    public async Task<Result> HandleAsync(Guid id, CancellationToken cancellationToken)
+    public async ValueTask<Result> Handle(DeleteCategoryCommand command, CancellationToken cancellationToken)
     {
+        var id = command.Id;
         var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         if (category == null) return InventoryErrors.CategoryNotFound(id);
 

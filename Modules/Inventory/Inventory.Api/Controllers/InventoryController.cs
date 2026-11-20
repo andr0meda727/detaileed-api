@@ -4,6 +4,7 @@ using Inventory.Application.Items.GetItem;
 using Inventory.Application.Items.GetItems;
 using Inventory.Application.Items.UpdateItem;
 using Inventory.Application.Stock;
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Api.Errors;
@@ -14,30 +15,28 @@ namespace Inventory.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class InventoryController : ControllerBase
+public class InventoryController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<PagedResponse<InventoryResponseDto>>> GetAll(
-        [FromQuery] bool? isLowStock, [FromQuery] PageRequest paging,
-        [FromServices] GetItemsHandler handler, CancellationToken cancellationToken)
+        [FromQuery] bool? isLowStock, [FromQuery] PageRequest paging, CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(isLowStock == true, paging, cancellationToken);
+        return await sender.Send(new GetItemsQuery(isLowStock == true, paging), cancellationToken);
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<InventoryResponseDto>> GetById(
-        Guid id, [FromServices] GetItemHandler handler, CancellationToken cancellationToken)
+    public async Task<ActionResult<InventoryResponseDto>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, cancellationToken);
+        var result = await sender.Send(new GetItemQuery(id), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
 
     [HttpPost]
     public async Task<ActionResult<InventoryResponseDto>> Create(
-        InventoryCreateDto request, [FromServices] CreateItemHandler handler, CancellationToken cancellationToken)
+        InventoryCreateDto request, CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(request, cancellationToken);
+        return await sender.Send(new CreateItemCommand(request), cancellationToken);
     }
 
     /// <summary>
@@ -45,9 +44,9 @@ public class InventoryController : ControllerBase
     /// </summary>
     [HttpPost("{id:guid}/movements")]
     public async Task<ActionResult<InventoryResponseDto>> RecordStockChange(
-        Guid id, StockChangeRequest request, [FromServices] RecordStockChangeHandler handler, CancellationToken cancellationToken)
+        Guid id, StockChangeRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, request, cancellationToken);
+        var result = await sender.Send(new RecordStockChangeCommand(id, request), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
@@ -57,10 +56,9 @@ public class InventoryController : ControllerBase
     /// </summary>
     [HttpGet("{id:guid}/movements")]
     public async Task<ActionResult<PagedResponse<StockMovementDto>>> GetMovements(
-        Guid id, [FromQuery] PageRequest paging, [FromServices] GetStockMovementsHandler handler,
-        CancellationToken cancellationToken)
+        Guid id, [FromQuery] PageRequest paging, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, paging, cancellationToken);
+        var result = await sender.Send(new GetStockMovementsQuery(id, paging), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
@@ -70,9 +68,9 @@ public class InventoryController : ControllerBase
     /// </summary>
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<InventoryResponseDto>> Update(
-        Guid id, InventoryCreateDto request, [FromServices] UpdateItemHandler handler, CancellationToken cancellationToken)
+        Guid id, InventoryCreateDto request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, request, cancellationToken);
+        var result = await sender.Send(new UpdateItemCommand(id, request), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }

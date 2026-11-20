@@ -1,12 +1,16 @@
 using Inventory.Application.Abstractions;
 using Inventory.Domain;
+using Mediator;
 
 namespace Inventory.Application.Categories.CreateCategory;
 
-public sealed class CreateCategoryHandler(IInventoryDbContext db)
+public sealed record CreateCategoryCommand(CategoryCreateDto Request) : ICommand<CategoryResponseDto>;
+
+public sealed class CreateCategoryHandler(IInventoryDbContext db) : ICommandHandler<CreateCategoryCommand, CategoryResponseDto>
 {
-    public async Task<CategoryResponseDto> HandleAsync(CategoryCreateDto request, CancellationToken cancellationToken)
+    public async ValueTask<CategoryResponseDto> Handle(CreateCategoryCommand command, CancellationToken cancellationToken)
     {
+        var request = command.Request;
         var category = InventoryCategory.Create(request.Name);
 
         db.Categories.Add(category);
