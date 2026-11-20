@@ -5,21 +5,19 @@ using Inventory.Application.Abstractions;
 using Marketplace.Application.Abstractions;
 using Scheduling.Application.Abstractions;
 using Shared.Application.Messaging.Behaviors;
-using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
 namespace Api.Extensions;
 
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Host-wide API behaviour. Each module registers its own validators; this runs them for every request body.
+    /// Host-wide API behaviour. Every use case is a command or query sent through ISender; each module registers
+    /// its own validators, and the validation behavior runs them before the handler.
     /// </summary>
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        services.AddFluentValidationAutoValidation();
-
-        // Every use case is a command or query sent through ISender. The source generator finds the handlers in the
-        // modules' Application assemblies at compile time; they are scoped because they use the tenant DbContexts.
+        // The source generator finds the handlers in the modules' Application assemblies at compile time;
+        // they are scoped because they use the tenant DbContexts.
         services.AddMediator(options =>
         {
             options.ServiceLifetime = ServiceLifetime.Scoped;
@@ -32,8 +30,8 @@ public static class ServiceCollectionExtensions
                 typeof(IMarketplaceDbContext),
                 typeof(ISchedulingDbContext)
             ];
-            // Outermost first
-            options.PipelineBehaviors = [typeof(LoggingBehavior<,>)];
+            // Outermost first, so failed validation is logged too
+            options.PipelineBehaviors = [typeof(LoggingBehavior<,>), typeof(ValidationBehavior<,>)];
         });
 
         return services;
