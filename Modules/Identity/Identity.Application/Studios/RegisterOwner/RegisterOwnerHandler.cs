@@ -7,7 +7,7 @@ namespace Identity.Application.Studios.RegisterOwner;
 
 public sealed record RegisterOwnerCommand(RegisterOwnerRequest Request) : ICommand<Result>;
 
-public sealed class RegisterOwnerHandler(IIdentityDbContext db, IAuthProvider authProvider)
+public sealed class RegisterOwnerHandler(IIdentityDbContext db, IAuthProvider authProvider, FrontendSettings frontend)
     : ICommandHandler<RegisterOwnerCommand, Result>
 {
     public async ValueTask<Result> Handle(RegisterOwnerCommand command, CancellationToken cancellationToken)
@@ -19,7 +19,7 @@ public sealed class RegisterOwnerHandler(IIdentityDbContext db, IAuthProvider au
         }
 
         var userId = await authProvider.SignUpAsync(
-            request.Email, request.Password, request.FirstName, request.LastName, cancellationToken);
+            request.Email, request.Password, request.FirstName, request.LastName, frontend.SignedUpUrl, cancellationToken);
 
         // The studio and its owner membership are saved in one transaction
         var studio = Studio.Register(

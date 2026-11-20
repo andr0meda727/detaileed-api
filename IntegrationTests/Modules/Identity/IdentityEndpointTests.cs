@@ -229,6 +229,8 @@ public class IdentityEndpointTests
         Assert.That(studios[0].GetProperty("name").GetString(), Is.EqualTo("Nowe Studio"));
         Assert.That(studios[0].GetProperty("role").GetString(), Is.EqualTo("Owner"));
         Assert.That(studios[0].GetProperty("timeZone").GetString(), Is.EqualTo("Europe/Warsaw"));
+        // The confirmation link leads to the dashboard, whatever Supabase's Site URL is
+        Assert.That(_factory.Auth.SignUpRedirects[email], Is.EqualTo("https://app.detaileed.com/"));
     }
 
     [Test]
