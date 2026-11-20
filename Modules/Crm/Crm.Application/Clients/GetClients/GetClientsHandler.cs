@@ -1,15 +1,19 @@
 using Crm.Application.Abstractions;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Pagination;
 using Shared.Kernel.Pagination;
 
 namespace Crm.Application.Clients.GetClients;
 
+public sealed record GetClientsQuery(PageRequest Paging, string? Search) : IQuery<PagedResponse<ClientResponseDto>>;
+
 public sealed class GetClientsHandler(ICrmDbContext db)
+    : IQueryHandler<GetClientsQuery, PagedResponse<ClientResponseDto>>
 {
-    public async Task<PagedResponse<ClientResponseDto>> HandleAsync(
-        PageRequest page, string? search, CancellationToken cancellationToken)
+    public async ValueTask<PagedResponse<ClientResponseDto>> Handle(GetClientsQuery request, CancellationToken cancellationToken)
     {
+        var (page, search) = request;
         var query = db.Clients.Include(c => c.Vehicles).AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(search))

@@ -43,7 +43,7 @@ public class CrmTenantIsolationTests
     {
         await using var db = DbForStudio(_seed.StudioA.StudioId);
 
-        var clients = await new GetClientsHandler(db).HandleAsync(new PageRequest(), null, Ct);
+        var clients = await new GetClientsHandler(db).Handle(new GetClientsQuery(new PageRequest(), null), Ct);
 
         Assert.That(clients.Items.Select(c => c.Id), Does.Contain(_seed.StudioA.ClientId));
         Assert.That(clients.Items.Select(c => c.Id), Does.Not.Contain(_seed.StudioB.ClientId));
@@ -54,7 +54,7 @@ public class CrmTenantIsolationTests
     {
         await using var db = DbForStudio(_seed.StudioA.StudioId);
 
-        var vehicles = await new GetVehiclesHandler(db).HandleAsync(new PageRequest(), null, null, Ct);
+        var vehicles = await new GetVehiclesHandler(db).Handle(new GetVehiclesQuery(new PageRequest(), null, null), Ct);
 
         Assert.That(vehicles.Items.Select(v => v.Id), Does.Contain(_seed.StudioA.VehicleId));
         Assert.That(vehicles.Items.Select(v => v.Id), Does.Not.Contain(_seed.StudioB.VehicleId));
@@ -65,7 +65,7 @@ public class CrmTenantIsolationTests
     {
         await using var db = DbForStudio(_seed.StudioA.StudioId);
 
-        var result = await new GetClientHandler(db).HandleAsync(_seed.StudioB.ClientId, Ct);
+        var result = await new GetClientHandler(db).Handle(new GetClientQuery(_seed.StudioB.ClientId), Ct);
 
         Assert.That(result.ErrorCode, Is.EqualTo("CLIENT_NOT_FOUND"));
     }
@@ -75,8 +75,8 @@ public class CrmTenantIsolationTests
     {
         await using var db = DbForStudio(_seed.StudioA.StudioId);
 
-        var result = await new UpdateVehicleHandler(db).HandleAsync(_seed.StudioA.VehicleId,
-            new VehicleRequest(_seed.StudioB.ClientId, "WA12345", null, null), Ct);
+        var result = await new UpdateVehicleHandler(db).Handle(new UpdateVehicleCommand(_seed.StudioA.VehicleId,
+            new VehicleRequest(_seed.StudioB.ClientId, "WA12345", null, null)), Ct);
 
         Assert.That(result.ErrorCode, Is.EqualTo("CLIENT_NOT_FOUND"));
     }
@@ -86,8 +86,8 @@ public class CrmTenantIsolationTests
     {
         await using var db = DbForUserWithoutStudio();
 
-        Assert.That((await new GetClientsHandler(db).HandleAsync(new PageRequest(), null, Ct)).Items, Is.Empty);
-        Assert.That((await new GetVehiclesHandler(db).HandleAsync(new PageRequest(), null, null, Ct)).Items, Is.Empty);
+        Assert.That((await new GetClientsHandler(db).Handle(new GetClientsQuery(new PageRequest(), null), Ct)).Items, Is.Empty);
+        Assert.That((await new GetVehiclesHandler(db).Handle(new GetVehiclesQuery(new PageRequest(), null, null), Ct)).Items, Is.Empty);
     }
 
     [Test]
@@ -96,8 +96,8 @@ public class CrmTenantIsolationTests
         await using var dbA = DbForStudio(_seed.StudioA.StudioId);
         await using var dbB = DbForStudio(_seed.StudioB.StudioId);
 
-        var clientA = await new GetClientHandler(dbA).HandleAsync(_seed.StudioA.ClientId, Ct);
-        var clientB = await new GetClientHandler(dbB).HandleAsync(_seed.StudioB.ClientId, Ct);
+        var clientA = await new GetClientHandler(dbA).Handle(new GetClientQuery(_seed.StudioA.ClientId), Ct);
+        var clientB = await new GetClientHandler(dbB).Handle(new GetClientQuery(_seed.StudioB.ClientId), Ct);
 
         Assert.That(clientA.Value!.Phone, Is.EqualTo(clientB.Value!.Phone));
     }

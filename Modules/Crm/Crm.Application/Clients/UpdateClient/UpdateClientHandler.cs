@@ -1,15 +1,19 @@
 using Crm.Application.Abstractions;
 using Crm.Contracts;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Results;
 
 namespace Crm.Application.Clients.UpdateClient;
 
+public sealed record UpdateClientCommand(Guid Id, ClientRequest Request) : ICommand<Result<ClientResponseDto>>;
+
 public sealed class UpdateClientHandler(ICrmDbContext db)
+    : ICommandHandler<UpdateClientCommand, Result<ClientResponseDto>>
 {
-    public async Task<Result<ClientResponseDto>> HandleAsync(
-        Guid id, ClientRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<ClientResponseDto>> Handle(UpdateClientCommand command, CancellationToken cancellationToken)
     {
+        var (id, request) = command;
         var client = await db.Clients.Include(c => c.Vehicles).FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         if (client == null) return CrmErrors.ClientNotFound(id);
 

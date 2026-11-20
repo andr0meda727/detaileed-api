@@ -4,6 +4,7 @@ using Crm.Application.Clients.DeleteClient;
 using Crm.Application.Clients.GetClient;
 using Crm.Application.Clients.GetClients;
 using Crm.Application.Clients.UpdateClient;
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Api.Errors;
@@ -14,30 +15,30 @@ namespace Crm.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ClientsController : ControllerBase
+public class ClientsController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<PagedResponse<ClientResponseDto>>> GetAll(
         [FromQuery] PageRequest paging, [FromQuery] string? search,
-        [FromServices] GetClientsHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(paging, search, cancellationToken);
+        return await sender.Send(new GetClientsQuery(paging, search), cancellationToken);
     }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ClientResponseDto>> GetById(
-        Guid id, [FromServices] GetClientHandler handler, CancellationToken cancellationToken)
+        Guid id, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, cancellationToken);
+        var result = await sender.Send(new GetClientQuery(id), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
 
     [HttpPost]
     public async Task<ActionResult<ClientResponseDto>> Create(
-        ClientRequest request, [FromServices] CreateClientHandler handler, CancellationToken cancellationToken)
+        ClientRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(request, cancellationToken);
+        var result = await sender.Send(new CreateClientCommand(request), cancellationToken);
 
         return result.Success
             ? CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value)
@@ -46,18 +47,18 @@ public class ClientsController : ControllerBase
 
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ClientResponseDto>> Update(
-        Guid id, ClientRequest request, [FromServices] UpdateClientHandler handler, CancellationToken cancellationToken)
+        Guid id, ClientRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, request, cancellationToken);
+        var result = await sender.Send(new UpdateClientCommand(id, request), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(
-        Guid id, [FromServices] DeleteClientHandler handler, CancellationToken cancellationToken)
+        Guid id, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, cancellationToken);
+        var result = await sender.Send(new DeleteClientCommand(id), cancellationToken);
 
         return result.Success ? NoContent() : this.ToProblem(result.Error!);
     }

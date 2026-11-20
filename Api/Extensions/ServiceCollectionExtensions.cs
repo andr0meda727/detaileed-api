@@ -1,4 +1,5 @@
-﻿using Inventory.Application.Abstractions;
+﻿using Crm.Application.Abstractions;
+using Inventory.Application.Abstractions;
 using Shared.Application.Messaging.Behaviors;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
@@ -20,6 +21,7 @@ public static class ServiceCollectionExtensions
             options.ServiceLifetime = ServiceLifetime.Scoped;
             options.Assemblies =
             [
+                typeof(ICrmDbContext),
                 typeof(IInventoryDbContext)
             ];
             // Outermost first

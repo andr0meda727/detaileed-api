@@ -1,15 +1,19 @@
 using Crm.Application.Abstractions;
 using Crm.Contracts;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Results;
 
 namespace Crm.Application.Vehicles.UpdateVehicle;
 
+public sealed record UpdateVehicleCommand(Guid Id, VehicleRequest Request) : ICommand<Result<VehicleResponseDto>>;
+
 public sealed class UpdateVehicleHandler(ICrmDbContext db)
+    : ICommandHandler<UpdateVehicleCommand, Result<VehicleResponseDto>>
 {
-    public async Task<Result<VehicleResponseDto>> HandleAsync(
-        Guid id, VehicleRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<VehicleResponseDto>> Handle(UpdateVehicleCommand command, CancellationToken cancellationToken)
     {
+        var (id, request) = command;
         var vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
         if (vehicle == null) return CrmErrors.VehicleNotFound(id);
 

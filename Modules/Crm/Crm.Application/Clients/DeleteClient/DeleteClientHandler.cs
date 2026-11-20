@@ -1,13 +1,17 @@
 using Crm.Application.Abstractions;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Results;
 
 namespace Crm.Application.Clients.DeleteClient;
 
-public sealed class DeleteClientHandler(ICrmDbContext db)
+public sealed record DeleteClientCommand(Guid Id) : ICommand<Result>;
+
+public sealed class DeleteClientHandler(ICrmDbContext db) : ICommandHandler<DeleteClientCommand, Result>
 {
-    public async Task<Result> HandleAsync(Guid id, CancellationToken cancellationToken)
+    public async ValueTask<Result> Handle(DeleteClientCommand command, CancellationToken cancellationToken)
     {
+        var id = command.Id;
         var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         if (client == null) return CrmErrors.ClientNotFound(id);
 
