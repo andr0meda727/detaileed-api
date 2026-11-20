@@ -1,4 +1,5 @@
 using Crm.Contracts;
+using Mediator;
 using Scheduling.Application.Abstractions;
 using Scheduling.Application.Planning;
 using Scheduling.Domain.Bookings;
@@ -7,12 +8,17 @@ using Shared.Kernel.Tenancy;
 
 namespace Scheduling.Application.Bookings.CreateBooking;
 
+public sealed record CreateBookingCommand(BookingRequest Request) : ICommand<Result<BookingResponseDto>>;
+
 public sealed class CreateBookingHandler(
     ISchedulingDbContext db, IClientDirectory clientDirectory, ITenantContext tenant, TimeProvider clock,
     BookingPlanner planner)
+    : ICommandHandler<CreateBookingCommand, Result<BookingResponseDto>>
 {
-    public async Task<Result<BookingResponseDto>> HandleAsync(BookingRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<BookingResponseDto>> Handle(
+        CreateBookingCommand command, CancellationToken cancellationToken)
     {
+        var request = command.Request;
         var studioId = tenant.StudioId ?? throw new InvalidOperationException("Creating a booking needs a resolved studio.");
 
         var parties = await clientDirectory.FindAsync(request, cancellationToken);

@@ -1,3 +1,4 @@
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Scheduling.Application.Planning.DayBoard;
@@ -13,13 +14,13 @@ namespace Scheduling.Api.Controllers;
 [ApiController]
 [Route("api/schedule")]
 [Authorize]
-public class ScheduleController : ControllerBase
+public class ScheduleController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<ScheduleDto>> Get(
-        [FromServices] GetScheduleHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(cancellationToken);
+        return await sender.Send(new GetScheduleQuery(), cancellationToken);
     }
 
     /// <summary>
@@ -28,9 +29,9 @@ public class ScheduleController : ControllerBase
     [HttpPut]
     [Authorize(Policy = Policies.OwnerOnly)]
     public async Task<ActionResult<ScheduleDto>> Update(
-        ScheduleRequest request, [FromServices] UpdateScheduleHandler handler, CancellationToken cancellationToken)
+        ScheduleRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(request, cancellationToken);
+        var result = await sender.Send(new UpdateScheduleCommand(request), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
@@ -40,25 +41,25 @@ public class ScheduleController : ControllerBase
     /// </summary>
     [HttpGet("day")]
     public async Task<ActionResult<DayBoardDto>> Day(
-        [FromQuery] DateOnly date, [FromServices] GetDayBoardHandler handler, CancellationToken cancellationToken)
+        [FromQuery] DateOnly date, CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(date, cancellationToken);
+        return await sender.Send(new GetDayBoardQuery(date), cancellationToken);
     }
 
     [HttpPost("closures")]
     [Authorize(Policy = Policies.OwnerOnly)]
     public async Task<ActionResult<ScheduleDto>> CloseDay(
-        ClosureRequest request, [FromServices] CloseDayHandler handler, CancellationToken cancellationToken)
+        ClosureRequest request, CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(request, cancellationToken);
+        return await sender.Send(new CloseDayCommand(request), cancellationToken);
     }
 
     [HttpDelete("closures/{date}")]
     [Authorize(Policy = Policies.OwnerOnly)]
     public async Task<IActionResult> ReopenDay(
-        DateOnly date, [FromServices] ReopenDayHandler handler, CancellationToken cancellationToken)
+        DateOnly date, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(date, cancellationToken);
+        var result = await sender.Send(new ReopenDayCommand(date), cancellationToken);
 
         return result.Success ? NoContent() : this.ToProblem(result.Error!);
     }

@@ -3,6 +3,7 @@ using Customers.Application.Abstractions;
 using Identity.Application.Abstractions;
 using Inventory.Application.Abstractions;
 using Marketplace.Application.Abstractions;
+using Scheduling.Application.Abstractions;
 using Shared.Application.Messaging.Behaviors;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
@@ -28,7 +29,8 @@ public static class ServiceCollectionExtensions
                 typeof(ICustomersDbContext),
                 typeof(IIdentityDbContext),
                 typeof(IInventoryDbContext),
-                typeof(IMarketplaceDbContext)
+                typeof(IMarketplaceDbContext),
+                typeof(ISchedulingDbContext)
             ];
             // Outermost first
             options.PipelineBehaviors = [typeof(LoggingBehavior<,>)];

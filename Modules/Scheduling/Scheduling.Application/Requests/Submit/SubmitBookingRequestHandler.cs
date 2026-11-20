@@ -1,5 +1,6 @@
 using Customers.Contracts;
 using Marketplace.Contracts;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Application.Abstractions;
 using Scheduling.Application.Planning;
@@ -12,17 +13,22 @@ using Shared.Kernel.Vehicles;
 
 namespace Scheduling.Application.Requests.Submit;
 
+public sealed record SubmitBookingRequestCommand(SubmitBookingRequest Request, string CustomerEmail)
+    : ICommand<Result<BookingRequestDto>>;
+
 public sealed class SubmitBookingRequestHandler(
     ISchedulingDbContext db, ITenantContext tenant, IPublicStudios publicStudios, ICustomerDirectory customers,
     BookingPlanner planner, TimeProvider clock)
+    : ICommandHandler<SubmitBookingRequestCommand, Result<BookingRequestDto>>
 {
     /// <summary>
     /// Sends the signed-in customer's request to a published studio. The prices are this studio's for the car's size,
     /// worked out here (never taken from the client). The studio is told through BookingRequestSubmitted.
     /// </summary>
-    public async Task<Result<BookingRequestDto>> HandleAsync(
-        SubmitBookingRequest request, string customerEmail, CancellationToken cancellationToken)
+    public async ValueTask<Result<BookingRequestDto>> Handle(
+        SubmitBookingRequestCommand command, CancellationToken cancellationToken)
     {
+        var (request, customerEmail) = command;
         var userId = tenant.UserId ?? throw new InvalidOperationException("A request needs a signed-in customer.");
 
         var studio = await publicStudios.FindPublishedAsync(request.StudioId, cancellationToken);

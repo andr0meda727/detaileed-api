@@ -1,3 +1,4 @@
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Scheduling.Application.Bookings;
@@ -16,32 +17,32 @@ namespace Scheduling.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class BookingsController : ControllerBase
+public class BookingsController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<PagedResponse<BookingResponseDto>>> GetAll(
         [FromQuery] PageRequest paging, [FromQuery] bool? isCompleted, [FromQuery] DateTime? fromDate,
-        [FromQuery] DateTime? toDate, [FromServices] GetBookingsHandler handler, CancellationToken cancellationToken)
+        [FromQuery] DateTime? toDate, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(paging, isCompleted, fromDate, toDate, cancellationToken);
+        var result = await sender.Send(new GetBookingsQuery(paging, isCompleted, fromDate, toDate), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<BookingResponseDto>> GetById(
-        Guid id, [FromServices] GetBookingHandler handler, CancellationToken cancellationToken)
+        Guid id, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, cancellationToken);
+        var result = await sender.Send(new GetBookingQuery(id), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
 
     [HttpPost]
     public async Task<ActionResult<BookingResponseDto>> Create(
-        BookingRequest request, [FromServices] CreateBookingHandler handler, CancellationToken cancellationToken)
+        BookingRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(request, cancellationToken);
+        var result = await sender.Send(new CreateBookingCommand(request), cancellationToken);
 
         return result.Success
             ? CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value)
@@ -50,36 +51,36 @@ public class BookingsController : ControllerBase
 
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<BookingResponseDto>> Update(
-        Guid id, BookingRequest request, [FromServices] UpdateBookingHandler handler, CancellationToken cancellationToken)
+        Guid id, BookingRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, request, cancellationToken);
+        var result = await sender.Send(new UpdateBookingCommand(id, request), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(
-        Guid id, [FromServices] DeleteBookingHandler handler, CancellationToken cancellationToken)
+        Guid id, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, cancellationToken);
+        var result = await sender.Send(new DeleteBookingCommand(id), cancellationToken);
 
         return result.Success ? NoContent() : this.ToProblem(result.Error!);
     }
 
     [HttpPost("{id:guid}/complete")]
     public async Task<ActionResult<BookingResponseDto>> Complete(
-        Guid id, [FromServices] CompleteBookingHandler handler, CancellationToken cancellationToken)
+        Guid id, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, cancellationToken);
+        var result = await sender.Send(new CompleteBookingCommand(id), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
 
     [HttpPost("{id:guid}/cancel")]
     public async Task<ActionResult<BookingResponseDto>> Cancel(
-        Guid id, [FromServices] CancelBookingHandler handler, CancellationToken cancellationToken)
+        Guid id, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, cancellationToken);
+        var result = await sender.Send(new CancelBookingCommand(id), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }

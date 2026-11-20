@@ -47,7 +47,8 @@ public class SchedulingTenantIsolationTests
     {
         await using var db = DbForStudio(_seed.StudioA.StudioId);
 
-        var bookings = (await new GetBookingsHandler(db).HandleAsync(new PageRequest(), null, null, null, Ct)).Value!;
+        var bookings = (await new GetBookingsHandler(db)
+            .Handle(new GetBookingsQuery(new PageRequest(), null, null, null), Ct)).Value!;
 
         Assert.That(bookings.Items.Select(b => b.Id), Does.Contain(_seed.StudioA.BookingId));
         Assert.That(bookings.Items.Select(b => b.Id), Does.Not.Contain(_seed.StudioB.BookingId));
@@ -58,7 +59,7 @@ public class SchedulingTenantIsolationTests
     {
         await using var db = DbForStudio(_seed.StudioA.StudioId);
 
-        var services = await new GetServicesHandler(db).HandleAsync(Ct);
+        var services = await new GetServicesHandler(db).Handle(new GetServicesQuery(), Ct);
 
         Assert.That(services.Select(s => s.Id), Does.Contain(_seed.StudioA.ServiceId));
         Assert.That(services.Select(s => s.Id), Does.Not.Contain(_seed.StudioB.ServiceId));
@@ -69,7 +70,7 @@ public class SchedulingTenantIsolationTests
     {
         await using var db = DbForStudio(_seed.StudioA.StudioId);
 
-        var result = await new GetBookingHandler(db).HandleAsync(_seed.StudioB.BookingId, Ct);
+        var result = await new GetBookingHandler(db).Handle(new GetBookingQuery(_seed.StudioB.BookingId), Ct);
 
         Assert.That(result.ErrorCode, Is.EqualTo("BOOKING_NOT_FOUND"));
     }
@@ -79,8 +80,9 @@ public class SchedulingTenantIsolationTests
     {
         await using var db = DbForUserWithoutStudio();
 
-        Assert.That((await new GetBookingsHandler(db).HandleAsync(new PageRequest(), null, null, null, Ct)).Value!.Items, Is.Empty);
-        Assert.That(await new GetServicesHandler(db).HandleAsync(Ct), Is.Empty);
+        Assert.That((await new GetBookingsHandler(db)
+            .Handle(new GetBookingsQuery(new PageRequest(), null, null, null), Ct)).Value!.Items, Is.Empty);
+        Assert.That(await new GetServicesHandler(db).Handle(new GetServicesQuery(), Ct), Is.Empty);
     }
 
     [Test]

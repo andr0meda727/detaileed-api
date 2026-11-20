@@ -1,3 +1,4 @@
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Application.Abstractions;
 using Scheduling.Contracts;
@@ -6,11 +7,16 @@ using Shared.Kernel.Results;
 
 namespace Scheduling.Application.Requests.Reject;
 
+public sealed record RejectBookingRequestCommand(Guid Id, RejectBookingRequest Decision)
+    : ICommand<Result<BookingRequestDto>>;
+
 public sealed class RejectBookingRequestHandler(ISchedulingDbContext db, TimeProvider clock)
+    : ICommandHandler<RejectBookingRequestCommand, Result<BookingRequestDto>>
 {
-    public async Task<Result<BookingRequestDto>> HandleAsync(
-        Guid id, RejectBookingRequest decision, CancellationToken cancellationToken)
+    public async ValueTask<Result<BookingRequestDto>> Handle(
+        RejectBookingRequestCommand command, CancellationToken cancellationToken)
     {
+        var (id, decision) = command;
         // Tenant-filtered: another studio's request is not found
         var request = await db.BookingRequests.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
         if (request == null) return RequestErrors.NotFound;

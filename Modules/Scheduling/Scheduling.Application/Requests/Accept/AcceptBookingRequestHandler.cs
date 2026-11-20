@@ -1,4 +1,5 @@
 using Crm.Contracts;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Application.Abstractions;
 using Scheduling.Application.Planning;
@@ -10,17 +11,22 @@ using Shared.Kernel.Tenancy;
 
 namespace Scheduling.Application.Requests.Accept;
 
+public sealed record AcceptBookingRequestCommand(Guid Id, AcceptBookingRequest Decision)
+    : ICommand<Result<BookingRequestDto>>;
+
 public sealed class AcceptBookingRequestHandler(
     ISchedulingDbContext db, IClientDirectory clients, ITenantContext tenant, TimeProvider clock, BookingPlanner planner)
+    : ICommandHandler<AcceptBookingRequestCommand, Result<BookingRequestDto>>
 {
     /// <summary>
     /// Turns a pending request into a normal booking: CRM finds or creates the studio's client and car for the
     /// customer, the booking is created at the agreed time and price, and the customer is told. A studio that plans puts
     /// the car on the chosen bay, or the best-fitting free one; when none is free the request stays pending.
     /// </summary>
-    public async Task<Result<BookingRequestDto>> HandleAsync(
-        Guid id, AcceptBookingRequest decision, CancellationToken cancellationToken)
+    public async ValueTask<Result<BookingRequestDto>> Handle(
+        AcceptBookingRequestCommand command, CancellationToken cancellationToken)
     {
+        var (id, decision) = command;
         var request = await db.BookingRequests.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
         if (request == null) return RequestErrors.NotFound;
         if (!request.IsPending) return RequestErrors.AlreadyDecided;

@@ -1,3 +1,4 @@
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -17,13 +18,13 @@ namespace Scheduling.Api.Controllers;
 [AllowAnonymous]
 [AllowWithoutStudio]
 [EnableRateLimiting(RateLimits.Public)]
-public class PublicEstimateController : ControllerBase
+public class PublicEstimateController(ISender sender) : ControllerBase
 {
     [HttpPost]
     public async Task<ActionResult<EstimateDto>> Estimate(
-        Guid studioId, EstimateRequest request, [FromServices] EstimateHandler handler, CancellationToken cancellationToken)
+        Guid studioId, EstimateRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(studioId, request, cancellationToken);
+        var result = await sender.Send(new EstimateQuery(studioId, request), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }

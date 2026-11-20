@@ -1,3 +1,4 @@
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Scheduling.Application.Planning.Bays;
@@ -17,21 +18,21 @@ namespace Scheduling.Api.Controllers;
 [ApiController]
 [Route("api/bays")]
 [Authorize]
-public class BaysController : ControllerBase
+public class BaysController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<BayDto>>> GetAll(
-        [FromServices] GetBaysHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(cancellationToken);
+        return await sender.Send(new GetBaysQuery(), cancellationToken);
     }
 
     [HttpPost]
     [Authorize(Policy = Policies.OwnerOnly)]
     public async Task<ActionResult<BayDto>> Create(
-        BayRequest request, [FromServices] CreateBayHandler handler, CancellationToken cancellationToken)
+        BayRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(request, cancellationToken);
+        var result = await sender.Send(new CreateBayCommand(request), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
@@ -39,9 +40,9 @@ public class BaysController : ControllerBase
     [HttpPut("{id:guid}")]
     [Authorize(Policy = Policies.OwnerOnly)]
     public async Task<ActionResult<BayDto>> Rename(
-        Guid id, BayRequest request, [FromServices] UpdateBayHandler handler, CancellationToken cancellationToken)
+        Guid id, BayRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, request, cancellationToken);
+        var result = await sender.Send(new UpdateBayCommand(id, request), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
@@ -52,9 +53,9 @@ public class BaysController : ControllerBase
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = Policies.OwnerOnly)]
     public async Task<IActionResult> Deactivate(
-        Guid id, [FromServices] DeactivateBayHandler handler, CancellationToken cancellationToken)
+        Guid id, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, cancellationToken);
+        var result = await sender.Send(new DeactivateBayCommand(id), cancellationToken);
 
         return result.Success ? NoContent() : this.ToProblem(result.Error!);
     }

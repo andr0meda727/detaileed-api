@@ -1,3 +1,4 @@
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Application.Abstractions;
 using Scheduling.Application.Planning;
@@ -30,7 +31,10 @@ public sealed record RequestPlanDto(
     Guid RequestId, bool PlanningEnabled, int DurationMinutes, PreferredTimeDto Preferred,
     List<AlternativeDto> Alternatives, List<CompetingRequestDto> CompetingRequests);
 
+public sealed record PlanBookingRequestQuery(Guid Id) : IQuery<Result<RequestPlanDto>>;
+
 public sealed class PlanBookingRequestHandler(ISchedulingDbContext db, BookingPlanner planner, TimeProvider clock)
+    : IQueryHandler<PlanBookingRequestQuery, Result<RequestPlanDto>>
 {
     public const int MaxAlternatives = 5;
 
@@ -41,8 +45,10 @@ public sealed class PlanBookingRequestHandler(ISchedulingDbContext db, BookingPl
     /// Helps staff answer a request: does the preferred time work, what are the closest times that do, and who else
     /// is asking for that time. Nothing is held or changed.
     /// </summary>
-    public async Task<Result<RequestPlanDto>> HandleAsync(Guid id, CancellationToken cancellationToken)
+    public async ValueTask<Result<RequestPlanDto>> Handle(
+        PlanBookingRequestQuery query, CancellationToken cancellationToken)
     {
+        var id = query.Id;
         // Tenant-filtered, so another studio's request is not found
         var request = await db.BookingRequests.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
         if (request == null) return RequestErrors.NotFound;

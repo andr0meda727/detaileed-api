@@ -1,3 +1,4 @@
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Scheduling.Application.Catalog;
@@ -13,20 +14,20 @@ namespace Scheduling.Api.Controllers;
 [ApiController]
 [Route("api/service")]
 [Authorize]
-public class ServiceController : ControllerBase
+public class ServiceController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<ServiceResponseDto>>> GetAll(
-        [FromServices] GetServicesHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(cancellationToken);
+        return await sender.Send(new GetServicesQuery(), cancellationToken);
     }
 
     [HttpPost]
     public async Task<ActionResult<ServiceResponseDto>> Create(
-        ServiceRequest request, [FromServices] CreateServiceHandler handler, CancellationToken cancellationToken)
+        ServiceRequest request, CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(request, cancellationToken);
+        return await sender.Send(new CreateServiceCommand(request), cancellationToken);
     }
 
     /// <summary>
@@ -34,18 +35,18 @@ public class ServiceController : ControllerBase
     /// </summary>
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ServiceResponseDto>> Update(
-        Guid id, ServiceRequest request, [FromServices] UpdateServiceHandler handler, CancellationToken cancellationToken)
+        Guid id, ServiceRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, request, cancellationToken);
+        var result = await sender.Send(new UpdateServiceCommand(id, request), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(
-        Guid id, [FromServices] DeleteServiceHandler handler, CancellationToken cancellationToken)
+        Guid id, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, cancellationToken);
+        var result = await sender.Send(new DeleteServiceCommand(id), cancellationToken);
 
         return result.Success ? NoContent() : this.ToProblem(result.Error!);
     }

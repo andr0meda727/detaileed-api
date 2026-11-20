@@ -1,3 +1,4 @@
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Application.Abstractions;
 using Shared.Application.Pagination;
@@ -6,14 +7,19 @@ using Shared.Kernel.Tenancy;
 
 namespace Scheduling.Application.Requests.GetMyRequests;
 
+public sealed record GetMyBookingRequestsQuery(PageRequest Paging) : IQuery<PagedResponse<BookingRequestDto>>;
+
 public sealed class GetMyBookingRequestsHandler(ISchedulingDbContext db, ITenantContext tenant)
+    : IQueryHandler<GetMyBookingRequestsQuery, PagedResponse<BookingRequestDto>>
 {
     /// <summary>
     /// The signed-in customer's requests at every studio, newest first, each with the booking it became (as it is
     /// now). This is the customer's booking history.
     /// </summary>
-    public async Task<PagedResponse<BookingRequestDto>> HandleAsync(PageRequest page, CancellationToken cancellationToken)
+    public async ValueTask<PagedResponse<BookingRequestDto>> Handle(
+        GetMyBookingRequestsQuery query, CancellationToken cancellationToken)
     {
+        var page = query.Paging;
         var userId = tenant.UserId ?? throw new InvalidOperationException("This needs a signed-in customer.");
 
         var requests = await db.BookingRequestsOfAnyStudio.AsNoTracking()
