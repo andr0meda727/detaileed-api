@@ -1,5 +1,6 @@
 using Identity.Application.Abstractions;
 using Identity.Domain.Studios;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Results;
 
@@ -8,14 +9,17 @@ namespace Identity.Application.Studios.CreateStudio;
 /// <summary>
 /// A signed-in user opens a studio and becomes its owner. An owner may run several studios (one per location).
 /// </summary>
+public sealed record CreateStudioCommand(Guid UserId, CreateStudioRequest Request) : ICommand<Result<UserStudioDto>>;
+
 public sealed class CreateStudioHandler(IIdentityDbContext db)
+    : ICommandHandler<CreateStudioCommand, Result<UserStudioDto>>
 {
     // Generous for real chains, but stops one account from flooding the system with studios
     public const int MaxOwnedStudios = 10;
 
-    public async Task<Result<UserStudioDto>> HandleAsync(
-        Guid userId, CreateStudioRequest request, CancellationToken cancellationToken)
+    public async ValueTask<Result<UserStudioDto>> Handle(CreateStudioCommand command, CancellationToken cancellationToken)
     {
+        var (userId, request) = command;
         var owned = await db.Members.CountAsync(
             m => m.UserId == userId && m.RoleId == Roles.Owner && m.IsActive, cancellationToken);
         if (owned >= MaxOwnedStudios)

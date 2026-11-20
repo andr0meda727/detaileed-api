@@ -2,6 +2,7 @@ using Identity.Application;
 using Identity.Application.Studios.ChangeStudioTimeZone;
 using Identity.Application.Studios.CreateStudio;
 using Identity.Application.Studios.GetMyStudios;
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Api.Errors;
@@ -13,17 +14,17 @@ namespace Identity.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class StudiosController : ControllerBase
+public class StudiosController(ISender sender) : ControllerBase
 {
     // Used to choose a studio, so it can't require one
     [HttpGet("my")]
     [AllowWithoutStudio]
     public async Task<ActionResult<List<UserStudioDto>>> GetMyStudios(
-        [FromServices] ITenantContext tenant, [FromServices] GetMyStudiosHandler handler, CancellationToken cancellationToken)
+        [FromServices] ITenantContext tenant, CancellationToken cancellationToken)
     {
         if (tenant.UserId is not { } userId) return Unauthorized();
 
-        return await handler.HandleAsync(userId, cancellationToken);
+        return await sender.Send(new GetMyStudiosQuery(userId), cancellationToken);
     }
 
     /// <summary>
@@ -33,12 +34,11 @@ public class StudiosController : ControllerBase
     [HttpPost]
     [AllowWithoutStudio]
     public async Task<ActionResult<UserStudioDto>> Create(
-        CreateStudioRequest request, [FromServices] ITenantContext tenant, [FromServices] CreateStudioHandler handler,
-        CancellationToken cancellationToken)
+        CreateStudioRequest request, [FromServices] ITenantContext tenant, CancellationToken cancellationToken)
     {
         if (tenant.UserId is not { } userId) return Unauthorized();
 
-        var result = await handler.HandleAsync(userId, request, cancellationToken);
+        var result = await sender.Send(new CreateStudioCommand(userId, request), cancellationToken);
 
         return result.Success
             ? Created("/api/studios/my", result.Value)
@@ -51,10 +51,9 @@ public class StudiosController : ControllerBase
     [HttpPut("time-zone")]
     [Authorize(Policy = IdentityModule.OwnerOnlyPolicy)]
     public async Task<IActionResult> ChangeTimeZone(
-        ChangeStudioTimeZoneRequest request, [FromServices] ChangeStudioTimeZoneHandler handler,
-        CancellationToken cancellationToken)
+        ChangeStudioTimeZoneRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(request, cancellationToken);
+        var result = await sender.Send(new ChangeStudioTimeZoneCommand(request), cancellationToken);
 
         return result.Success ? NoContent() : this.ToProblem(result.Error!);
     }

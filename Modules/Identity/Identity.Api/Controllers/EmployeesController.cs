@@ -3,6 +3,7 @@ using Identity.Application.Employees.ChangeEmployeeRole;
 using Identity.Application.Employees.GetEmployees;
 using Identity.Application.Employees.InviteEmployee;
 using Identity.Application.Employees.RemoveEmployee;
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Api.Errors;
@@ -15,13 +16,13 @@ namespace Identity.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Policy = IdentityModule.OwnerOnlyPolicy)]
-public class EmployeesController : ControllerBase
+public class EmployeesController(ISender sender) : ControllerBase
 {
     [HttpPost("invite")]
     public async Task<IActionResult> InviteEmployee(
-        InviteEmployeeRequest request, [FromServices] InviteEmployeeHandler handler, CancellationToken cancellationToken)
+        InviteEmployeeRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(request, cancellationToken);
+        var result = await sender.Send(new InviteEmployeeCommand(request), cancellationToken);
 
         return result.Success
             ? Ok(new { message = "Zaproszenie zostało wysłane pomyślnie!" })
@@ -30,26 +31,25 @@ public class EmployeesController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<List<StudioEmployeeDto>>> GetAllEmployees(
-        [FromServices] GetEmployeesHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(cancellationToken);
+        return await sender.Send(new GetEmployeesQuery(), cancellationToken);
     }
 
     [HttpDelete("{userId:guid}")]
     public async Task<IActionResult> RemoveEmployee(
-        Guid userId, [FromServices] RemoveEmployeeHandler handler, CancellationToken cancellationToken)
+        Guid userId, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(userId, cancellationToken);
+        var result = await sender.Send(new RemoveEmployeeCommand(userId), cancellationToken);
 
         return result.Success ? NoContent() : this.ToProblem(result.Error!);
     }
 
     [HttpPatch("role")]
     public async Task<IActionResult> ChangeEmployeeRole(
-        ChangeEmployeeRoleRequest request, [FromServices] ChangeEmployeeRoleHandler handler,
-        CancellationToken cancellationToken)
+        ChangeEmployeeRoleRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(request, cancellationToken);
+        var result = await sender.Send(new ChangeEmployeeRoleCommand(request), cancellationToken);
 
         return result.Success
             ? Ok(new { message = "Rola pracownika została zmieniona." })

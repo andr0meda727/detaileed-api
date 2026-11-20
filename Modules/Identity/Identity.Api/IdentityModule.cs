@@ -5,17 +5,6 @@ using Identity.Api.Controllers;
 using Identity.Application;
 using Identity.Application.Abstractions;
 using Identity.Application.Directory;
-using Identity.Application.Employees.ChangeEmployeeRole;
-using Identity.Application.Employees.GetEmployees;
-using Identity.Application.Employees.InviteEmployee;
-using Identity.Application.Employees.RemoveEmployee;
-using Identity.Application.Invitations.AcceptInvitation;
-using Identity.Application.Invitations.DeclineInvitation;
-using Identity.Application.Invitations.GetInvitation;
-using Identity.Application.Studios.ChangeStudioTimeZone;
-using Identity.Application.Studios.CreateStudio;
-using Identity.Application.Studios.GetMyStudios;
-using Identity.Application.Studios.RegisterOwner;
 using Identity.Application.Tenancy;
 using Identity.Contracts;
 using Identity.Domain.Studios;
@@ -48,17 +37,6 @@ public static class IdentityModule
         // One per request, filled by the tenant middleware and read by every module's DbContext
         services.AddScoped<ITenantContext, TenantContext>();
 
-        services.AddScoped<RegisterOwnerHandler>();
-        services.AddScoped<GetMyStudiosHandler>();
-        services.AddScoped<CreateStudioHandler>();
-        services.AddScoped<ChangeStudioTimeZoneHandler>();
-        services.AddScoped<InviteEmployeeHandler>();
-        services.AddScoped<GetEmployeesHandler>();
-        services.AddScoped<RemoveEmployeeHandler>();
-        services.AddScoped<ChangeEmployeeRoleHandler>();
-        services.AddScoped<GetInvitationHandler>();
-        services.AddScoped<AcceptInvitationHandler>();
-        services.AddScoped<DeclineInvitationHandler>();
         services.AddScoped<ResolveCallerHandler>();
 
         // Other modules read studio facts (the time zone) only through this

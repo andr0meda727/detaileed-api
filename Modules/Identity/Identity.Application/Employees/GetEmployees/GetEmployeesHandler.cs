@@ -1,12 +1,16 @@
 using Identity.Application.Abstractions;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Kernel.Tenancy;
 
 namespace Identity.Application.Employees.GetEmployees;
 
+public sealed record GetEmployeesQuery : IQuery<List<StudioEmployeeDto>>;
+
 public sealed class GetEmployeesHandler(IIdentityDbContext db, ITenantContext tenant)
+    : IQueryHandler<GetEmployeesQuery, List<StudioEmployeeDto>>
 {
-    public async Task<List<StudioEmployeeDto>> HandleAsync(CancellationToken cancellationToken)
+    public async ValueTask<List<StudioEmployeeDto>> Handle(GetEmployeesQuery query, CancellationToken cancellationToken)
     {
         var studioId = tenant.StudioId ?? throw new InvalidOperationException("Listing employees needs a resolved studio.");
 

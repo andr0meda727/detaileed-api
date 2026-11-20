@@ -1,5 +1,6 @@
 ﻿using Crm.Application.Abstractions;
 using Customers.Application.Abstractions;
+using Identity.Application.Abstractions;
 using Inventory.Application.Abstractions;
 using Marketplace.Application.Abstractions;
 using Shared.Application.Messaging.Behaviors;
@@ -25,6 +26,7 @@ public static class ServiceCollectionExtensions
             [
                 typeof(ICrmDbContext),
                 typeof(ICustomersDbContext),
+                typeof(IIdentityDbContext),
                 typeof(IInventoryDbContext),
                 typeof(IMarketplaceDbContext)
             ];

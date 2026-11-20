@@ -1,15 +1,20 @@
 using Identity.Application.Abstractions;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Application.Invitations.GetInvitation;
 
+public sealed record GetInvitationQuery(Guid Token) : IQuery<InvitationResponseDto?>;
+
 public sealed class GetInvitationHandler(IIdentityDbContext db, TimeProvider clock)
+    : IQueryHandler<GetInvitationQuery, InvitationResponseDto?>
 {
     /// <summary>
     /// Returns an invitation that can still be answered, or null. Anyone with the link may look it up.
     /// </summary>
-    public async Task<InvitationResponseDto?> HandleAsync(Guid token, CancellationToken cancellationToken)
+    public async ValueTask<InvitationResponseDto?> Handle(GetInvitationQuery query, CancellationToken cancellationToken)
     {
+        var token = query.Token;
         var invitation = await db.FindInvitationByTokenAsync(token, cancellationToken);
         if (invitation == null) return null;
 
