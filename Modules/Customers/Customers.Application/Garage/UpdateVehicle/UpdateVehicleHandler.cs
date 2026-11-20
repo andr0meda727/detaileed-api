@@ -11,7 +11,8 @@ public sealed record UpdateVehicleCommand(Guid Id, GarageVehicleRequest Request)
 public sealed class UpdateVehicleHandler(ICustomersDbContext db)
     : ICommandHandler<UpdateVehicleCommand, Result<GarageVehicleDto>>
 {
-    public async ValueTask<Result<GarageVehicleDto>> Handle(UpdateVehicleCommand command, CancellationToken cancellationToken)
+    public async ValueTask<Result<GarageVehicleDto>> Handle(
+        UpdateVehicleCommand command, CancellationToken cancellationToken)
     {
         var (id, request) = command;
         // Another account's car is filtered out, so it is simply not found

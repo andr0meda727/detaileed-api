@@ -11,7 +11,8 @@ public sealed record UpdateVehicleCommand(Guid Id, VehicleRequest Request) : ICo
 public sealed class UpdateVehicleHandler(ICrmDbContext db)
     : ICommandHandler<UpdateVehicleCommand, Result<VehicleResponseDto>>
 {
-    public async ValueTask<Result<VehicleResponseDto>> Handle(UpdateVehicleCommand command, CancellationToken cancellationToken)
+    public async ValueTask<Result<VehicleResponseDto>> Handle(
+        UpdateVehicleCommand command, CancellationToken cancellationToken)
     {
         var (id, request) = command;
         var vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.Id == id, cancellationToken);

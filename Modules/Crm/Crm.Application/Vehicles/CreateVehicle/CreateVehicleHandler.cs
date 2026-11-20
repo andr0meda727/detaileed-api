@@ -11,7 +11,8 @@ public sealed record CreateVehicleCommand(VehicleRequest Request) : ICommand<Res
 public sealed class CreateVehicleHandler(ICrmDbContext db)
     : ICommandHandler<CreateVehicleCommand, Result<VehicleResponseDto>>
 {
-    public async ValueTask<Result<VehicleResponseDto>> Handle(CreateVehicleCommand command, CancellationToken cancellationToken)
+    public async ValueTask<Result<VehicleResponseDto>> Handle(
+        CreateVehicleCommand command, CancellationToken cancellationToken)
     {
         var request = command.Request;
         // Tenant-filtered, so another studio's client is unknown here

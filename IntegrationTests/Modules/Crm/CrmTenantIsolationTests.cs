@@ -86,8 +86,10 @@ public class CrmTenantIsolationTests
     {
         await using var db = DbForUserWithoutStudio();
 
-        Assert.That((await new GetClientsHandler(db).Handle(new GetClientsQuery(new PageRequest(), null), Ct)).Items, Is.Empty);
-        Assert.That((await new GetVehiclesHandler(db).Handle(new GetVehiclesQuery(new PageRequest(), null, null), Ct)).Items, Is.Empty);
+        Assert.That((await new GetClientsHandler(db)
+            .Handle(new GetClientsQuery(new PageRequest(), null), Ct)).Items, Is.Empty);
+        Assert.That((await new GetVehiclesHandler(db)
+            .Handle(new GetVehiclesQuery(new PageRequest(), null, null), Ct)).Items, Is.Empty);
     }
 
     [Test]

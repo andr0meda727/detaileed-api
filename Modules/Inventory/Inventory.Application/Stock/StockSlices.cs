@@ -47,12 +47,14 @@ public class StockChangeRequestValidator : AbstractValidator<StockChangeRequest>
 /// <summary>
 /// Records a delivery or a stocktake as a movement and returns the item with its new stock.
 /// </summary>
-public sealed record RecordStockChangeCommand(Guid ItemId, StockChangeRequest Request) : ICommand<Result<InventoryResponseDto>>;
+public sealed record RecordStockChangeCommand(Guid ItemId, StockChangeRequest Request)
+    : ICommand<Result<InventoryResponseDto>>;
 
 public sealed class RecordStockChangeHandler(IInventoryDbContext db, ITenantContext tenant)
     : ICommandHandler<RecordStockChangeCommand, Result<InventoryResponseDto>>
 {
-    public async ValueTask<Result<InventoryResponseDto>> Handle(RecordStockChangeCommand command, CancellationToken cancellationToken)
+    public async ValueTask<Result<InventoryResponseDto>> Handle(
+        RecordStockChangeCommand command, CancellationToken cancellationToken)
     {
         var (itemId, request) = command;
 
@@ -71,7 +73,8 @@ public sealed class RecordStockChangeHandler(IInventoryDbContext db, ITenantCont
 /// <summary>
 /// An item's stock history, newest first.
 /// </summary>
-public sealed record GetStockMovementsQuery(Guid ItemId, PageRequest Paging) : IQuery<Result<PagedResponse<StockMovementDto>>>;
+public sealed record GetStockMovementsQuery(Guid ItemId, PageRequest Paging)
+    : IQuery<Result<PagedResponse<StockMovementDto>>>;
 
 public sealed class GetStockMovementsHandler(IInventoryDbContext db)
     : IQueryHandler<GetStockMovementsQuery, Result<PagedResponse<StockMovementDto>>>

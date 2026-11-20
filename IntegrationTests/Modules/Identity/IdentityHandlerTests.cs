@@ -116,7 +116,9 @@ public class IdentityHandlerTests
 
         await using var db = OwnerDb(out var tenant);
         var second = await new InviteEmployeeHandler(db, tenant, Frontend, _clock)
-            .Handle(new InviteEmployeeCommand(new InviteEmployeeRequest { Email = email, RoleId = Roles.Employee }), Ct);
+            
+                .Handle(new InviteEmployeeCommand(
+                    new InviteEmployeeRequest { Email = email, RoleId = Roles.Employee }), Ct);
 
         Assert.That(second.ErrorCode, Is.EqualTo("INVITATION_PENDING"));
     }
@@ -128,7 +130,8 @@ public class IdentityHandlerTests
         var first = await InviteAsync(user.Email);
         await using (var db = UserDb(user.Id))
         {
-            await new DeclineInvitationHandler(db, _clock).Handle(new DeclineInvitationCommand(first.Token, user.Id), Ct);
+            await new DeclineInvitationHandler(db, _clock)
+                .Handle(new DeclineInvitationCommand(first.Token, user.Id), Ct);
         }
 
         var second = await InviteAsync(user.Email, Roles.Manager);
@@ -146,7 +149,9 @@ public class IdentityHandlerTests
         var handler = new InviteEmployeeHandler(db, tenant, Frontend, _clock);
         var ownerEmail = $"owner-{_seed.StudioA.OwnerUserId:N}@test.pl";
 
-        var self = await handler.Handle(new InviteEmployeeCommand(new InviteEmployeeRequest { Email = ownerEmail.ToUpperInvariant(), RoleId = Roles.Employee }), Ct);
+        var self = await handler
+            .Handle(new InviteEmployeeCommand(
+                new InviteEmployeeRequest { Email = ownerEmail.ToUpperInvariant(), RoleId = Roles.Employee }), Ct);
 
         Assert.That(self.ErrorCode, Is.EqualTo("SELF_INVITE"));
     }
@@ -159,7 +164,8 @@ public class IdentityHandlerTests
 
         await using (var db = UserDb(user.Id))
         {
-            var result = await new AcceptInvitationHandler(db, _clock).Handle(new AcceptInvitationCommand(invitation.Token, user.Id), Ct);
+            var result = await new AcceptInvitationHandler(db, _clock)
+                .Handle(new AcceptInvitationCommand(invitation.Token, user.Id), Ct);
             Assert.That(result.Success, Is.True, result.ErrorMessage);
         }
 
@@ -175,17 +181,20 @@ public class IdentityHandlerTests
         var invitation = await InviteAsync(user.Email);
         await using (var db = UserDb(user.Id))
         {
-            await new AcceptInvitationHandler(db, _clock).Handle(new AcceptInvitationCommand(invitation.Token, user.Id), Ct);
+            await new AcceptInvitationHandler(db, _clock)
+                .Handle(new AcceptInvitationCommand(invitation.Token, user.Id), Ct);
         }
         await using (var db = OwnerDb(out var tenant))
         {
-            Assert.That((await new RemoveEmployeeHandler(db, tenant).Handle(new RemoveEmployeeCommand(user.Id), Ct)).Success, Is.True);
+            Assert.That((await new RemoveEmployeeHandler(db, tenant)
+                .Handle(new RemoveEmployeeCommand(user.Id), Ct)).Success, Is.True);
         }
 
         var again = await InviteAsync(user.Email);
         await using (var db = UserDb(user.Id))
         {
-            Assert.That((await new AcceptInvitationHandler(db, _clock).Handle(new AcceptInvitationCommand(again.Token, user.Id), Ct)).Success, Is.True);
+            Assert.That((await new AcceptInvitationHandler(db, _clock)
+                .Handle(new AcceptInvitationCommand(again.Token, user.Id), Ct)).Success, Is.True);
         }
 
         await using var readDb = UserDb(user.Id);
@@ -200,7 +209,8 @@ public class IdentityHandlerTests
         var invitation = await InviteAsync(user.Email);
         await using (var db = UserDb(user.Id))
         {
-            await new AcceptInvitationHandler(db, _clock).Handle(new AcceptInvitationCommand(invitation.Token, user.Id), Ct);
+            await new AcceptInvitationHandler(db, _clock)
+                .Handle(new AcceptInvitationCommand(invitation.Token, user.Id), Ct);
         }
 
         await using (var db = OwnerDb(out var tenant))
@@ -210,7 +220,8 @@ public class IdentityHandlerTests
 
         await using var readDb = OwnerDb(out var readTenant);
         Assert.That(await new GetMyStudiosHandler(readDb).Handle(new GetMyStudiosQuery(user.Id), Ct), Is.Empty);
-        Assert.That((await new GetEmployeesHandler(readDb, readTenant).Handle(new GetEmployeesQuery(), Ct)).Select(e => e.UserId),
+        Assert.That((await new GetEmployeesHandler(readDb, readTenant)
+            .Handle(new GetEmployeesQuery(), Ct)).Select(e => e.UserId),
             Is.EqualTo(new[] { _seed.StudioA.OwnerUserId }));
     }
 
@@ -220,7 +231,9 @@ public class IdentityHandlerTests
         await using var db = OwnerDb(out var tenant);
 
         var result = await new ChangeEmployeeRoleHandler(db, tenant)
-            .Handle(new ChangeEmployeeRoleCommand(new ChangeEmployeeRoleRequest(_seed.StudioA.OwnerUserId, Roles.Employee)), Ct);
+            
+                .Handle(new ChangeEmployeeRoleCommand(
+                    new ChangeEmployeeRoleRequest(_seed.StudioA.OwnerUserId, Roles.Employee)), Ct);
 
         Assert.That(result.ErrorCode, Is.EqualTo("SELF_ROLE_CHANGE"));
     }
@@ -232,7 +245,8 @@ public class IdentityHandlerTests
         var someoneElse = await CreateUserAsync();
 
         await using var db = UserDb(someoneElse.Id);
-        var result = await new AcceptInvitationHandler(db, _clock).Handle(new AcceptInvitationCommand(invitation.Token, someoneElse.Id), Ct);
+        var result = await new AcceptInvitationHandler(db, _clock)
+            .Handle(new AcceptInvitationCommand(invitation.Token, someoneElse.Id), Ct);
 
         Assert.That(result.ErrorCode, Is.EqualTo("WRONG_USER"));
     }

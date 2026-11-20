@@ -17,7 +17,8 @@ public sealed class CreateStudioHandler(IIdentityDbContext db)
     // Generous for real chains, but stops one account from flooding the system with studios
     public const int MaxOwnedStudios = 10;
 
-    public async ValueTask<Result<UserStudioDto>> Handle(CreateStudioCommand command, CancellationToken cancellationToken)
+    public async ValueTask<Result<UserStudioDto>> Handle(
+        CreateStudioCommand command, CancellationToken cancellationToken)
     {
         var (userId, request) = command;
         var owned = await db.Members.CountAsync(

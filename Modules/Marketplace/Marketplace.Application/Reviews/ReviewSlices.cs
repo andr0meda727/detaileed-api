@@ -113,7 +113,8 @@ public sealed class GetReviewableVisitsHandler(IMarketplaceDbContext db, ITenant
     /// <summary>
     /// The caller's completed visits they haven't reviewed yet and still can, newest first.
     /// </summary>
-    public async ValueTask<List<ReviewableVisitDto>> Handle(GetReviewableVisitsQuery query, CancellationToken cancellationToken)
+    public async ValueTask<List<ReviewableVisitDto>> Handle(
+        GetReviewableVisitsQuery query, CancellationToken cancellationToken)
     {
         var userId = tenant.UserId ?? throw new InvalidOperationException("This needs a signed-in customer.");
         var since = clock.GetUtcNow().UtcDateTime - ReviewableVisit.ReviewPeriod;
@@ -136,7 +137,8 @@ public sealed class GetReviewableVisitsHandler(IMarketplaceDbContext db, ITenant
     }
 }
 
-public sealed record GetStudioReviewsQuery(Guid StudioId, CursorRequest Paging) : IQuery<Result<CursorResponse<ReviewDto>>>;
+public sealed record GetStudioReviewsQuery(Guid StudioId, CursorRequest Paging)
+    : IQuery<Result<CursorResponse<ReviewDto>>>;
 
 public sealed class GetStudioReviewsHandler(IMarketplaceDbContext db)
     : IQueryHandler<GetStudioReviewsQuery, Result<CursorResponse<ReviewDto>>>
@@ -146,7 +148,8 @@ public sealed class GetStudioReviewsHandler(IMarketplaceDbContext db)
     /// because new reviews arrive at the top: with offsets, one written while the customer reads would push a review
     /// they already saw onto the next page.
     /// </summary>
-    public async ValueTask<Result<CursorResponse<ReviewDto>>> Handle(GetStudioReviewsQuery request, CancellationToken cancellationToken)
+    public async ValueTask<Result<CursorResponse<ReviewDto>>> Handle(
+        GetStudioReviewsQuery request, CancellationToken cancellationToken)
     {
         var (studioId, paging) = request;
         TimeCursor? after = null;

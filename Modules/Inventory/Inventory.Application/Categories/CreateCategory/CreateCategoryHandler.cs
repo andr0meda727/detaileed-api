@@ -8,7 +8,8 @@ public sealed record CreateCategoryCommand(CategoryCreateDto Request) : ICommand
 
 public sealed class CreateCategoryHandler(IInventoryDbContext db) : ICommandHandler<CreateCategoryCommand, CategoryResponseDto>
 {
-    public async ValueTask<CategoryResponseDto> Handle(CreateCategoryCommand command, CancellationToken cancellationToken)
+    public async ValueTask<CategoryResponseDto> Handle(
+        CreateCategoryCommand command, CancellationToken cancellationToken)
     {
         var request = command.Request;
         var category = InventoryCategory.Create(request.Name);

@@ -66,13 +66,16 @@ public class CrmHandlerTests
     {
         await using var db = DbForStudio(StudioId);
         var phone = NewPhone();
-        var client = await new CreateClientHandler(db).Handle(new CreateClientCommand(new ClientRequest { Name = "Stary", Phone = phone }), Ct);
+        var client = await new CreateClientHandler(db)
+            .Handle(new CreateClientCommand(new ClientRequest { Name = "Stary", Phone = phone }), Ct);
 
         await new DeleteClientHandler(db).Handle(new DeleteClientCommand(client.Value!.Id), Ct);
-        var again = await new CreateClientHandler(db).Handle(new CreateClientCommand(new ClientRequest { Name = "Nowy", Phone = phone }), Ct);
+        var again = await new CreateClientHandler(db)
+            .Handle(new CreateClientCommand(new ClientRequest { Name = "Nowy", Phone = phone }), Ct);
 
         Assert.That(again.Success, Is.True);
-        Assert.That((await new GetClientHandler(db).Handle(new GetClientQuery(client.Value.Id), Ct)).ErrorCode, Is.EqualTo("CLIENT_NOT_FOUND"));
+        Assert.That((await new GetClientHandler(db)
+            .Handle(new GetClientQuery(client.Value.Id), Ct)).ErrorCode, Is.EqualTo("CLIENT_NOT_FOUND"));
     }
 
     [Test]
@@ -80,7 +83,8 @@ public class CrmHandlerTests
     {
         await using var db = DbForStudio(StudioId);
         var phone = NewPhone();
-        var client = await new CreateClientHandler(db).Handle(new CreateClientCommand(new ClientRequest { Name = "Jan", Phone = phone }), Ct);
+        var client = await new CreateClientHandler(db)
+            .Handle(new CreateClientCommand(new ClientRequest { Name = "Jan", Phone = phone }), Ct);
 
         var updated = await new UpdateClientHandler(db).Handle(new UpdateClientCommand(client.Value!.Id,
             new ClientRequest { Name = "Jan Kowalski", Phone = phone, Email = "jan@test.pl" }), Ct);
@@ -94,7 +98,8 @@ public class CrmHandlerTests
     {
         await using var db = DbForStudio(StudioId);
         var phone = NewPhone();
-        var client = await new CreateClientHandler(db).Handle(new CreateClientCommand(new ClientRequest { Name = "Ewa", Phone = phone }), Ct);
+        var client = await new CreateClientHandler(db)
+            .Handle(new CreateClientCommand(new ClientRequest { Name = "Ewa", Phone = phone }), Ct);
 
         await new UpdateClientHandler(db).Handle(new UpdateClientCommand(client.Value!.Id,
             new ClientRequest { Name = "Ewa Nowak", Phone = phone }), Ct);
@@ -115,7 +120,8 @@ public class CrmHandlerTests
             Name = "Szukany", Phone = NewPhone(), Vehicle = new ClientVehicleRequest($"PO {token}", null, null)
         }), Ct);
 
-        var found = await new GetClientsHandler(db).Handle(new GetClientsQuery(new PageRequest(), token.ToLowerInvariant()), Ct);
+        var found = await new GetClientsHandler(db)
+            .Handle(new GetClientsQuery(new PageRequest(), token.ToLowerInvariant()), Ct);
 
         Assert.That(found.Items.Select(c => c.Id), Is.EqualTo(new[] { client.Value!.Id }));
     }
@@ -124,15 +130,19 @@ public class CrmHandlerTests
     public async Task Vehicles_CanBeAddedFilteredAndDeleted()
     {
         await using var db = DbForStudio(StudioId);
-        var client = await new CreateClientHandler(db).Handle(new CreateClientCommand(new ClientRequest { Name = "Flota", Phone = NewPhone() }), Ct);
+        var client = await new CreateClientHandler(db)
+            .Handle(new CreateClientCommand(new ClientRequest { Name = "Flota", Phone = NewPhone() }), Ct);
         var clientId = client.Value!.Id;
 
-        var first = await new CreateVehicleHandler(db).Handle(new CreateVehicleCommand(new VehicleRequest(clientId, "GD 1", "Skoda", null)), Ct);
-        await new CreateVehicleHandler(db).Handle(new CreateVehicleCommand(new VehicleRequest(clientId, "GD 2", "Skoda", null)), Ct);
+        var first = await new CreateVehicleHandler(db)
+            .Handle(new CreateVehicleCommand(new VehicleRequest(clientId, "GD 1", "Skoda", null)), Ct);
+        await new CreateVehicleHandler(db)
+            .Handle(new CreateVehicleCommand(new VehicleRequest(clientId, "GD 2", "Skoda", null)), Ct);
         await new DeleteVehicleHandler(db).Handle(new DeleteVehicleCommand(first.Value!.Id), Ct);
 
         await using var readDb = DbForStudio(StudioId);
-        var vehicles = await new GetVehiclesHandler(readDb).Handle(new GetVehiclesQuery(new PageRequest(), clientId, null), Ct);
+        var vehicles = await new GetVehiclesHandler(readDb)
+            .Handle(new GetVehiclesQuery(new PageRequest(), clientId, null), Ct);
         Assert.That(vehicles.Items.Select(v => v.LicensePlate), Is.EqualTo(new[] { "GD 2" }));
     }
 

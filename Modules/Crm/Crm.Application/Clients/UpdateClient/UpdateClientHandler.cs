@@ -11,7 +11,8 @@ public sealed record UpdateClientCommand(Guid Id, ClientRequest Request) : IComm
 public sealed class UpdateClientHandler(ICrmDbContext db)
     : ICommandHandler<UpdateClientCommand, Result<ClientResponseDto>>
 {
-    public async ValueTask<Result<ClientResponseDto>> Handle(UpdateClientCommand command, CancellationToken cancellationToken)
+    public async ValueTask<Result<ClientResponseDto>> Handle(
+        UpdateClientCommand command, CancellationToken cancellationToken)
     {
         var (id, request) = command;
         var client = await db.Clients.Include(c => c.Vehicles).FirstOrDefaultAsync(c => c.Id == id, cancellationToken);

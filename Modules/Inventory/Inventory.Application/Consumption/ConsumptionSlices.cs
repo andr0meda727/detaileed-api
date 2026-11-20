@@ -52,7 +52,8 @@ public sealed record GetConsumptionQuery(Guid BookingId) : IQuery<Result<Consump
 
 public sealed class GetConsumptionHandler(IInventoryDbContext db) : IQueryHandler<GetConsumptionQuery, Result<ConsumptionDto>>
 {
-    public async ValueTask<Result<ConsumptionDto>> Handle(GetConsumptionQuery query, CancellationToken cancellationToken)
+    public async ValueTask<Result<ConsumptionDto>> Handle(
+        GetConsumptionQuery query, CancellationToken cancellationToken)
     {
         var bookingId = query.BookingId;
 

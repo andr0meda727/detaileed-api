@@ -34,12 +34,14 @@ public sealed record StudioPinDto(
         rating.AverageRating, rating.ReviewCount);
 }
 
-public sealed record SearchStudiosQuery(StudioSearchRequest Request, PageRequest Paging) : IQuery<PagedResponse<StudioPinDto>>;
+public sealed record SearchStudiosQuery(StudioSearchRequest Request, PageRequest Paging)
+    : IQuery<PagedResponse<StudioPinDto>>;
 
 public sealed class SearchStudiosHandler(IMarketplaceDbContext db)
     : IQueryHandler<SearchStudiosQuery, PagedResponse<StudioPinDto>>
 {
-    public async ValueTask<PagedResponse<StudioPinDto>> Handle(SearchStudiosQuery message, CancellationToken cancellationToken)
+    public async ValueTask<PagedResponse<StudioPinDto>> Handle(
+        SearchStudiosQuery message, CancellationToken cancellationToken)
     {
         var (request, page) = message;
         // Only published studios are public. The location index covers exactly this filter.

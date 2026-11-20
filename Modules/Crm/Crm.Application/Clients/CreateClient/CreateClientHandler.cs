@@ -11,7 +11,8 @@ public sealed record CreateClientCommand(ClientRequest Request) : ICommand<Resul
 public sealed class CreateClientHandler(ICrmDbContext db)
     : ICommandHandler<CreateClientCommand, Result<ClientResponseDto>>
 {
-    public async ValueTask<Result<ClientResponseDto>> Handle(CreateClientCommand command, CancellationToken cancellationToken)
+    public async ValueTask<Result<ClientResponseDto>> Handle(
+        CreateClientCommand command, CancellationToken cancellationToken)
     {
         var request = command.Request;
         if (await db.IsTakenAsync(request.Phone, null, cancellationToken)) return CrmErrors.PhoneTaken(request.Phone);

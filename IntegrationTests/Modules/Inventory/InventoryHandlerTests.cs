@@ -80,10 +80,15 @@ public class InventoryHandlerTests
     {
         await using var db = DbForStudio(StudioId);
         var create = new CreateItemHandler(db);
-        var low = await create.Handle(new CreateItemCommand(new InventoryCreateDto { Name = "Glinka", Unit = "szt", Stock = 1, MinStock = 4 }), Ct);
-        var enough = await create.Handle(new CreateItemCommand(new InventoryCreateDto { Name = "Recznik", Unit = "szt", Stock = 9, MinStock = 4 }), Ct);
+        var low = await create
+            .Handle(new CreateItemCommand(
+                new InventoryCreateDto { Name = "Glinka", Unit = "szt", Stock = 1, MinStock = 4 }), Ct);
+        var enough = await create
+            .Handle(new CreateItemCommand(
+                new InventoryCreateDto { Name = "Recznik", Unit = "szt", Stock = 9, MinStock = 4 }), Ct);
 
-        var lowStock = await new GetItemsHandler(db).Handle(new GetItemsQuery(LowStockOnly: true, new PageRequest { PageSize = PageRequest.MaxPageSize }), Ct);
+        var lowStock = await new GetItemsHandler(db)
+            .Handle(new GetItemsQuery(LowStockOnly: true, new PageRequest { PageSize = PageRequest.MaxPageSize }), Ct);
 
         Assert.That(lowStock.Items.Select(i => i.Id), Does.Contain(low.Id));
         Assert.That(lowStock.Items.Select(i => i.Id), Does.Not.Contain(enough.Id));
@@ -96,16 +101,19 @@ public class InventoryHandlerTests
         var create = new CreateItemHandler(db);
         foreach (var name in new[] { "Zeta", "Alfa", "Beta" })
         {
-            await create.Handle(new CreateItemCommand(new InventoryCreateDto { Name = name, Unit = "szt", Stock = 1 }), Ct);
+            await create
+                .Handle(new CreateItemCommand(new InventoryCreateDto { Name = name, Unit = "szt", Stock = 1 }), Ct);
         }
         var handler = new GetItemsHandler(db);
-        var everything = await handler.Handle(new GetItemsQuery(false, new PageRequest { PageSize = PageRequest.MaxPageSize }), Ct);
+        var everything = await handler
+            .Handle(new GetItemsQuery(false, new PageRequest { PageSize = PageRequest.MaxPageSize }), Ct);
 
         var paged = new List<InventoryResponseDto>();
         var pageCount = (everything.TotalCount + 1) / 2;
         for (var page = 1; page <= pageCount; page++)
         {
-            var result = await handler.Handle(new GetItemsQuery(false, new PageRequest { Page = page, PageSize = 2 }), Ct);
+            var result = await handler
+                .Handle(new GetItemsQuery(false, new PageRequest { Page = page, PageSize = 2 }), Ct);
             Assert.That(result.TotalPages, Is.EqualTo(pageCount));
             paged.AddRange(result.Items);
         }
@@ -121,7 +129,8 @@ public class InventoryHandlerTests
     {
         await using var db = DbForStudio(StudioId);
 
-        var result = await new GetItemsHandler(db).Handle(new GetItemsQuery(false, new PageRequest { Page = 1000 }), Ct);
+        var result = await new GetItemsHandler(db)
+            .Handle(new GetItemsQuery(false, new PageRequest { Page = 1000 }), Ct);
 
         Assert.That(result.Items, Is.Empty);
         Assert.That(result.TotalCount, Is.GreaterThan(0));
@@ -132,8 +141,10 @@ public class InventoryHandlerTests
     {
         await using var db = DbForStudio(StudioId);
 
-        var category = await new CreateCategoryHandler(db).Handle(new CreateCategoryCommand(new CategoryCreateDto { Name = "Akcesoria" }), Ct);
-        var renamed = await new UpdateCategoryHandler(db).Handle(new UpdateCategoryCommand(category.Id, new CategoryCreateDto { Name = "Mikrofibry" }), Ct);
+        var category = await new CreateCategoryHandler(db)
+            .Handle(new CreateCategoryCommand(new CategoryCreateDto { Name = "Akcesoria" }), Ct);
+        var renamed = await new UpdateCategoryHandler(db)
+            .Handle(new UpdateCategoryCommand(category.Id, new CategoryCreateDto { Name = "Mikrofibry" }), Ct);
         var deleted = await new DeleteCategoryHandler(db).Handle(new DeleteCategoryCommand(category.Id), Ct);
         var afterDelete = await new GetCategoryHandler(db).Handle(new GetCategoryQuery(category.Id), Ct);
 
@@ -146,7 +157,8 @@ public class InventoryHandlerTests
     public async Task DeleteCategory_KeepsItsItemsWithoutCategory()
     {
         await using var db = DbForStudio(StudioId);
-        var category = await new CreateCategoryHandler(db).Handle(new CreateCategoryCommand(new CategoryCreateDto { Name = "Do usuniecia" }), Ct);
+        var category = await new CreateCategoryHandler(db)
+            .Handle(new CreateCategoryCommand(new CategoryCreateDto { Name = "Do usuniecia" }), Ct);
         var item = await new CreateItemHandler(db).Handle(new CreateItemCommand(
             new InventoryCreateDto { Name = "Pad", Unit = "szt", Stock = 2, CategoryId = category.Id }), Ct);
 

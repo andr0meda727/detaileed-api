@@ -11,7 +11,8 @@ public sealed record GetClientsQuery(PageRequest Paging, string? Search) : IQuer
 public sealed class GetClientsHandler(ICrmDbContext db)
     : IQueryHandler<GetClientsQuery, PagedResponse<ClientResponseDto>>
 {
-    public async ValueTask<PagedResponse<ClientResponseDto>> Handle(GetClientsQuery request, CancellationToken cancellationToken)
+    public async ValueTask<PagedResponse<ClientResponseDto>> Handle(
+        GetClientsQuery request, CancellationToken cancellationToken)
     {
         var (page, search) = request;
         var query = db.Clients.Include(c => c.Vehicles).AsNoTracking();

@@ -9,7 +9,8 @@ public sealed record GetCategoryQuery(Guid Id) : IQuery<Result<CategoryResponseD
 
 public sealed class GetCategoryHandler(IInventoryDbContext db) : IQueryHandler<GetCategoryQuery, Result<CategoryResponseDto>>
 {
-    public async ValueTask<Result<CategoryResponseDto>> Handle(GetCategoryQuery query, CancellationToken cancellationToken)
+    public async ValueTask<Result<CategoryResponseDto>> Handle(
+        GetCategoryQuery query, CancellationToken cancellationToken)
     {
         var id = query.Id;
         var category = await db.Categories

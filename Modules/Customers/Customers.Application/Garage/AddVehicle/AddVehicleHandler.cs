@@ -12,7 +12,8 @@ public sealed record AddVehicleCommand(GarageVehicleRequest Request) : ICommand<
 public sealed class AddVehicleHandler(ICustomersDbContext db, ITenantContext tenant)
     : ICommandHandler<AddVehicleCommand, Result<GarageVehicleDto>>
 {
-    public async ValueTask<Result<GarageVehicleDto>> Handle(AddVehicleCommand command, CancellationToken cancellationToken)
+    public async ValueTask<Result<GarageVehicleDto>> Handle(
+        AddVehicleCommand command, CancellationToken cancellationToken)
     {
         var request = command.Request;
         var userId = tenant.RequireUser();
