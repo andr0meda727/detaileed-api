@@ -51,16 +51,31 @@ revert the model snapshot by hand.
   code here; new tables belong to a module.
 - `Shared/`:
   - `Shared.Kernel` has `Result`/`Result<T>`/`Error`, `ITenantContext`/`ITenantEntity`, `IAuditableEntity`, and `PageRequest`/`PagedResponse<T>`. It must not reference EF or ASP.NET.
-  - `Shared.Application` has the EF query helpers, e.g. `ToPagedResponseAsync`, and `IOutbox`.
+  - `Shared.Application` has the EF query helpers, e.g. `ToPagedResponseAsync`, `IOutbox`, and the mediator's
+    pipeline behaviors (`LoggingBehavior`, `ValidationBehavior`).
   - `Shared.Infrastructure` has `TenantDbContext`, `TenantContext`, and messaging: `AddMessaging` (MassTransit on the PostgreSQL transport) and the per-module outbox (`AddOutbox<TContext>()`, `OutboxDispatcher`).
   - `Shared.Api` has `ToProblem(Error)`, the policy names `Policies.OwnerOnly` and `RateLimits.Public` (any module may
     require them), and `[AllowWithoutStudio]`.
 - `Modules/<Name>/{Contracts, Domain, Application, Infrastructure, Api}`: the target shape. Inventory, CRM, Scheduling and Identity are the reference implementations; Notifications has no Domain/Application (it stores nothing).
   - Domain entities have private setters and factory/behaviour methods. State rules return `Result` errors from the domain (e.g. `Booking.Complete` → `BOOKING_ALREADY_FINISHED`).
-  - Application uses vertical slices (`Items/CreateItem/CreateItemHandler.cs`). Handlers are plain classes over `I<Module>DbContext` (no repositories, no mediator) and return `Result<T>`.
+  - Application uses vertical slices (`Items/CreateItem/CreateItemHandler.cs`). Every use case is a command or query
+    sent through the mediator (Mediator by martinothamar, source-generated, MIT; not MediatR). The slice file declares
+    the message next to its handler: `sealed record UpdateItemCommand(Guid Id, InventoryCreateDto Request) : ICommand<Result<…>>`
+    (writes) or `…Query : IQuery<…>` (reads), and the handler implements `ICommandHandler<,>`/`IQueryHandler<,>` with
+    `ValueTask<T> Handle(message, ct)`. Handlers work directly over `I<Module>DbContext` (no repositories) and usually return `Result<T>`.
+  - The host's `AddMediator` (`Api/Extensions/ServiceCollectionExtensions.cs`) lists every module Application assembly
+    in `options.Assemblies` and registers handlers itself (scoped). Add a new module's assembly there. The
+    `Mediator.SourceGenerator` package is referenced only by `Api`; Application projects reference `Mediator.Abstractions`.
+  - Validation runs in `ValidationBehavior`: it validates the message and each request body or query object it carries
+    with their FluentValidation validators. A failure throws `ValidationException`, which `GlobalExceptionHandler` turns
+    into a 400 `ValidationProblemDetails` keyed by property path. Endpoints with no message (the bookings report)
+    validate explicitly.
   - Infrastructure has its own DbContext, Postgres schema and migrations history table.
-  - Api has the controllers and `<Module>Module.Add<Module>Module()`, which registers the handlers and validators and calls `AddApplicationPart`.
-  - Controllers inject handlers with `[FromServices]`.
+  - Api has the controllers and `<Module>Module.Add<Module>Module()`, which registers the validators and services and calls `AddApplicationPart`.
+  - Controllers take `ISender sender` in their constructor and call `sender.Send(new XCommand(...), ct)`. Identity's
+    `ResolveCallerHandler` is the one plain service: `TenantMiddleware` calls it on every request.
+  - Handler integration tests construct handlers directly: `new XHandler(db).Handle(new XCommand(...), ct)`. That
+    skips the pipeline, so validation is covered by the endpoint tests.
 
 ### Coupling between modules
 - `<Module>.Contracts` is the only public surface. It holds plain records and interfaces with no package dependencies, e.g. `Crm.Contracts.IClientDirectory` and `ClientDetailsChanged`. Everything else in a module is internal to it, and that includes the legacy projects.
@@ -74,6 +89,8 @@ revert the model snapshot by hand.
 - Dependencies point inwards.
 - Modules never reference `Core`, `Infrastructure` or `Api`. The legacy projects and other modules may use a module only through its `Contracts`.
 - Module Application layers use EF Core but not `Relational`/Npgsql.
+- `MediatorConventionTests`: handlers implement the mediator interfaces, messages end in `Command`/`Query`, and
+  controllers never take a handler.
 
 A new module gets added to `ModuleBoundaryTests.Modules`, so every rule applies to it.
 
