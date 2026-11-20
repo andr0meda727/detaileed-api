@@ -141,7 +141,7 @@ hasUnpricedServices, notes, rejectionReason, createdAt, decidedAt, booking: { id
 Another studio's request: `BOOKING_REQUEST_NOT_FOUND`.
 
 A new request is emailed to the studio's owners with a link to `{Frontend:BaseUrl}/s/<studioId>/requests?id=<requestId>`;
-the answer is emailed to the customer with a link to `{Web:BaseUrl}/konto/rezerwacje`.
+the answer is emailed to the customer with a link to `{Web:BaseUrl}/account/bookings`.
 
 ## Inventory
 
