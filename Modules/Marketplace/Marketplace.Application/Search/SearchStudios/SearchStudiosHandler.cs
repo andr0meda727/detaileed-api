@@ -2,6 +2,7 @@ using FluentValidation;
 using Marketplace.Application.Abstractions;
 using Marketplace.Application.Reviews;
 using Marketplace.Domain;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Contracts;
 using Shared.Application.Pagination;
@@ -33,11 +34,14 @@ public sealed record StudioPinDto(
         rating.AverageRating, rating.ReviewCount);
 }
 
+public sealed record SearchStudiosQuery(StudioSearchRequest Request, PageRequest Paging) : IQuery<PagedResponse<StudioPinDto>>;
+
 public sealed class SearchStudiosHandler(IMarketplaceDbContext db)
+    : IQueryHandler<SearchStudiosQuery, PagedResponse<StudioPinDto>>
 {
-    public async Task<PagedResponse<StudioPinDto>> HandleAsync(
-        StudioSearchRequest request, PageRequest page, CancellationToken cancellationToken)
+    public async ValueTask<PagedResponse<StudioPinDto>> Handle(SearchStudiosQuery message, CancellationToken cancellationToken)
     {
+        var (request, page) = message;
         // Only published studios are public. The location index covers exactly this filter.
         var query = db.Listings.AsNoTracking()
             .Where(l => l.IsPublished

@@ -3,6 +3,7 @@ using Marketplace.Application.Reviews;
 using Marketplace.Application.Search.GetPublicStudio;
 using Marketplace.Application.Search.SearchStudios;
 using Marketplace.Api.Caching;
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
@@ -25,7 +26,7 @@ namespace Marketplace.Api.Controllers;
 [AllowWithoutStudio]
 [EnableRateLimiting(RateLimits.Public)]
 [OutputCache(PolicyName = PublicCatalogCachePolicy.Name)]
-public class PublicStudiosController : ControllerBase
+public class PublicStudiosController(ISender sender) : ControllerBase
 {
     /// <summary>
     /// Published studios inside the visible map area, e.g.
@@ -34,16 +35,16 @@ public class PublicStudiosController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<PagedResponse<StudioPinDto>>> Search(
         [FromQuery] StudioSearchRequest request, [FromQuery] PageRequest paging,
-        [FromServices] SearchStudiosHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(request, paging, cancellationToken);
+        return await sender.Send(new SearchStudiosQuery(request, paging), cancellationToken);
     }
 
     [HttpGet("{studioId:guid}")]
     public async Task<ActionResult<ListingDto>> Get(
-        Guid studioId, [FromServices] GetPublicStudioHandler handler, CancellationToken cancellationToken)
+        Guid studioId, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(studioId, cancellationToken);
+        var result = await sender.Send(new GetPublicStudioQuery(studioId), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
@@ -54,10 +55,9 @@ public class PublicStudiosController : ControllerBase
     /// </summary>
     [HttpGet("{studioId:guid}/reviews")]
     public async Task<ActionResult<CursorResponse<ReviewDto>>> Reviews(
-        Guid studioId, [FromQuery] CursorRequest paging, [FromServices] GetStudioReviewsHandler handler,
-        CancellationToken cancellationToken)
+        Guid studioId, [FromQuery] CursorRequest paging, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(studioId, paging, cancellationToken);
+        var result = await sender.Send(new GetStudioReviewsQuery(studioId, paging), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }

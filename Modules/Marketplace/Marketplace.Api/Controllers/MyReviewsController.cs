@@ -1,4 +1,5 @@
 using Marketplace.Application.Reviews;
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,24 +17,24 @@ namespace Marketplace.Api.Controllers;
 [Route("api/me/reviews")]
 [Authorize]
 [AllowWithoutStudio]
-public class MyReviewsController : ControllerBase
+public class MyReviewsController(ISender sender) : ControllerBase
 {
     /// <summary>
     /// Completed visits the customer can still review (up to 90 days after the visit).
     /// </summary>
     [HttpGet("pending")]
     public async Task<ActionResult<List<ReviewableVisitDto>>> Pending(
-        [FromServices] GetReviewableVisitsHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(cancellationToken);
+        return await sender.Send(new GetReviewableVisitsQuery(), cancellationToken);
     }
 
     [HttpPost]
     [EnableRateLimiting(RateLimits.Public)]
     public async Task<ActionResult<ReviewDto>> Submit(
-        SubmitReviewRequest request, [FromServices] SubmitReviewHandler handler, CancellationToken cancellationToken)
+        SubmitReviewRequest request, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(request, cancellationToken);
+        var result = await sender.Send(new SubmitReviewCommand(request), cancellationToken);
 
         return result.Success
             ? StatusCode(StatusCodes.Status201Created, result.Value)
