@@ -1,6 +1,7 @@
 using Customers.Application;
 using Customers.Application.Profile.GetMyProfile;
 using Customers.Application.Profile.SaveMyProfile;
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Api.Errors;
@@ -15,21 +16,21 @@ namespace Customers.Api.Controllers;
 [Route("api/me/profile")]
 [Authorize]
 [AllowWithoutStudio]
-public class MyProfileController : ControllerBase
+public class MyProfileController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<ProfileDto>> Get(
-        [FromServices] GetMyProfileHandler handler, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(cancellationToken);
+        var result = await sender.Send(new GetMyProfileQuery(), cancellationToken);
 
         return result.Success ? result.Value! : this.ToProblem(result.Error!);
     }
 
     [HttpPut]
     public async Task<ActionResult<ProfileDto>> Save(
-        ProfileRequest request, [FromServices] SaveMyProfileHandler handler, CancellationToken cancellationToken)
+        ProfileRequest request, CancellationToken cancellationToken)
     {
-        return await handler.HandleAsync(request, cancellationToken);
+        return await sender.Send(new SaveMyProfileCommand(request), cancellationToken);
     }
 }

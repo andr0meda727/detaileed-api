@@ -1,4 +1,5 @@
 ﻿using Crm.Application.Abstractions;
+using Customers.Application.Abstractions;
 using Inventory.Application.Abstractions;
 using Shared.Application.Messaging.Behaviors;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
@@ -22,6 +23,7 @@ public static class ServiceCollectionExtensions
             options.Assemblies =
             [
                 typeof(ICrmDbContext),
+                typeof(ICustomersDbContext),
                 typeof(IInventoryDbContext)
             ];
             // Outermost first
