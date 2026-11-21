@@ -48,7 +48,7 @@ builder.Services.AddMessaging(builder.Configuration,
     MarketplaceModule.ConsumersAssembly);
 
 builder.Services.AddProxySupport();
-builder.Services.AddPublicRateLimiting(builder.Configuration);
+builder.Services.AddRateLimits(builder.Configuration);
 
 builder.Services.AddOpenApi();
 
@@ -102,12 +102,14 @@ app.UseRouting();
 
 app.UseCors("Frontend");
 
+// Before the rate limiter, which limits chat per signed-in user. Checking a token needs no database, so
+// anonymous public requests lose nothing.
+app.UseAuthentication();
+
 app.UseRateLimiter();
 
-// After the rate limiter, so cached answers still count; before authentication, so a hit skips the profile lookup
+// After the rate limiter, so cached answers still count; before the tenant context, so a hit skips the profile lookup
 app.UseOutputCache();
-
-app.UseAuthentication();
 
 // Needs the routed endpoint (for [AllowWithoutStudio]) and the authenticated user
 app.UseTenantContext();

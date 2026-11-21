@@ -10,4 +10,10 @@ public static class RateLimits
     /// set by <c>RateLimiting:PublicPermitLimit</c>.
     /// </summary>
     public const string Public = "public";
+
+    /// <summary>
+    /// Sending chat messages: a fixed number per minute per signed-in user (customers behind one shared IP don't
+    /// share it), set by <c>RateLimiting:ChatPermitLimit</c>.
+    /// </summary>
+    public const string Chat = "chat";
 }

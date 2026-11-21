@@ -9,7 +9,9 @@ using Chat.Domain;
 using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Shared.Api.Errors;
+using Shared.Api.RateLimiting;
 using Shared.Api.Tenancy;
 using Shared.Kernel.Pagination;
 
@@ -61,6 +63,7 @@ public class MyConversationsController(ISender sender) : ControllerBase
     }
 
     [HttpPost("{id:guid}/messages")]
+    [EnableRateLimiting(RateLimits.Chat)]
     public async Task<ActionResult<MessageDto>> Send(
         Guid id, SendMessageRequest request, CancellationToken cancellationToken)
     {

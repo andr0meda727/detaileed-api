@@ -295,6 +295,39 @@ public class ChatEndpointTests
     }
 
     [Test]
+    public async Task Sending_IsLimitedPerUser_NotPerAddress()
+    {
+        await using var limited = new ApiFactory(new Dictionary<string, string?> { ["RateLimiting:ChatPermitLimit"] = "2" });
+        var original = _factory;
+        _factory = limited;
+        try
+        {
+            // Test clients all come from the same (missing) address, so only the user tells them apart
+            var (anna, _) = await NewCustomerAsync();
+            var (ewa, _) = await NewCustomerAsync(name: "Ewa Kowalska");
+            var annas = await OpenAsync(anna);
+            var ewas = await OpenAsync(ewa);
+
+            var statuses = new List<HttpStatusCode>();
+            for (var i = 0; i < 3; i++)
+            {
+                var response = await anna.PostAsJsonAsync($"/api/me/conversations/{annas}/messages",
+                    new { body = $"Wiadomość {i}", clientMessageId = Guid.NewGuid() });
+                statuses.Add(response.StatusCode);
+            }
+            var ewaSends = await ewa.PostAsJsonAsync($"/api/me/conversations/{ewas}/messages",
+                new { body = "Hej", clientMessageId = Guid.NewGuid() });
+
+            Assert.That(statuses, Is.EqualTo(new[] { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.TooManyRequests }));
+            Assert.That(ewaSends.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        }
+        finally
+        {
+            _factory = original;
+        }
+    }
+
+    [Test]
     public async Task StaffOfAnotherStudio_CanWriteToStudioAAsACustomer()
     {
         // B's owner has one membership, so studio B is resolved as their tenant on every call
