@@ -104,7 +104,6 @@ jobs:
       DOTNET_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: Host=127.0.0.1;Port=1;Database=none;Username=none;Password=none
       Supabase__Url: https://ci.invalid
-      Supabase__Key: ci
       Supabase__ServiceRoleKey: ci
 
     steps:
