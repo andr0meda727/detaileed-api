@@ -212,6 +212,59 @@ public class IdentityEndpointTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
+    [Test]
+    public async Task Owner_ChangesTheStudioDetails()
+    {
+        using var owner = _factory.CreateClientFor(_seed.StudioA.OwnerUserId);
+
+        var response = await owner.PutAsJsonAsync("/api/studios/current", new
+        {
+            name = " Shine Kraków ", phone = "500 600 700", email = "", address = "ul. Długa 1", city = "Kraków",
+            latitude = 50.06, longitude = 19.94
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        var details = await owner.GetFromJsonAsync<JsonElement>("/api/studios/current");
+        Assert.Multiple(() =>
+        {
+            Assert.That(details.GetProperty("studioId").GetGuid(), Is.EqualTo(_seed.StudioA.StudioId));
+            Assert.That(details.GetProperty("name").GetString(), Is.EqualTo("Shine Kraków"));
+            Assert.That(details.GetProperty("email").ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(details.GetProperty("city").GetString(), Is.EqualTo("Kraków"));
+            Assert.That(details.GetProperty("latitude").GetDouble(), Is.EqualTo(50.06));
+            Assert.That(details.GetProperty("timeZone").GetString(), Is.Not.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Employee_ReadsButCannotChangeTheStudioDetails()
+    {
+        using var employee = _factory.CreateClientFor(await CreateMemberOfBothStudiosAsync());
+        employee.DefaultRequestHeaders.Add("X-Studio-Id", _seed.StudioB.StudioId.ToString());
+
+        var read = await employee.GetAsync("/api/studios/current");
+        var change = await employee.PutAsJsonAsync("/api/studios/current", new { name = "Przejęte" });
+
+        Assert.That(read.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(change.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task ChangeStudioDetails_RejectsInvalidInput()
+    {
+        using var owner = _factory.CreateClientFor(_seed.StudioB.OwnerUserId);
+
+        var response = await owner.PutAsJsonAsync("/api/studios/current", new
+        {
+            name = "", phone = "123", email = "nie-mail", latitude = 50.0
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var errors = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errors");
+        Assert.That(errors.EnumerateObject().Select(e => e.Name),
+            Is.EquivalentTo(new[] { "Name", "Phone", "Email", "Longitude" }));
+    }
+
     // A signed-up account (profile row) that works in no studio yet
     private static async Task<Guid> CreateUserWithoutStudioAsync()
     {
