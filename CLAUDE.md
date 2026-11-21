@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-DetailFlow is a multi-tenant SaaS API for car-detailing studios (ASP.NET Core 10, EF Core 10, Supabase Postgres + Supabase Auth).
+Detaileed is a multi-tenant SaaS API for car-detailing studios (ASP.NET Core 10, EF Core 10, Supabase Postgres + Supabase Auth).
 A public, Booksy-like client marketplace is planned. The codebase is mid-migration from a layered
 `Api` / `Core` / `Infrastructure` design to a **modular monolith** whose modules can later be split into services.
 Identity (sign-in, tenancy, studios, staff, invitations), Inventory, CRM (clients, vehicles) and Scheduling (bookings,
@@ -14,7 +14,7 @@ is free for now.
 ## Commands
 
 ```bash
-dotnet build detailflow_api.sln
+dotnet build detaileed_api.sln
 dotnet test                                   # all suites
 dotnet test UnitTests
 dotnet test ArchitectureTests
@@ -116,7 +116,7 @@ A new module gets added to `ModuleBoundaryTests.Modules`, so every rule applies 
   `Shared.Kernel.Time.TimeZones` and query half-open ranges (`>= from && < toExclusive`).
 
 ## Gotchas
-- `Api/Dockerfile` copies every `.csproj` for the restore layer, so add new projects there. Also add them to `detailflow_api.sln` under the `src` solution folder.
+- `Api/Dockerfile` copies every `.csproj` for the restore layer, so add new projects there. Also add them to `detaileed_api.sln` under the `src` solution folder.
 - Moving tables into a module: generate the module's first migration, then replace its body with `RenameTable(..., newSchema)` (see `AdoptCrmTables`, `AdoptSchedulingTables`). Generate an empty hand-over migration on the core context (see `HandOverCrmToModule`).
 - Commit with explicit file paths. The working tree often has unrelated local edits.
 - Secrets never go in tracked files. The dev connection string and Supabase keys are .NET user secrets
