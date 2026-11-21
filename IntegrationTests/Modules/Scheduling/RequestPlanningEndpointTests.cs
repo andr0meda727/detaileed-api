@@ -42,11 +42,7 @@ public class RequestPlanningEndpointTests
             openingHours = Enum.GetValues<DayOfWeek>().Select(day => new { day = day.ToString(), opens = "08:00:00", closes = "16:00:00" }),
             bufferMinutes = 15, minLeadHours = 12
         })).EnsureSuccessStatusCode();
-        (await owner.PutAsJsonAsync("/api/marketplace/listing", new
-        {
-            name = "Detail Studio", address = "ul. Długa 1", city = "Kraków", latitude = 50.06, longitude = 19.94
-        })).EnsureSuccessStatusCode();
-        (await owner.PostAsync("/api/marketplace/listing/publish", null)).EnsureSuccessStatusCode();
+        await owner.PublishListingAsync();
     }
 
     [OneTimeTearDown]

@@ -130,7 +130,6 @@ namespace Marketplace.Infrastructure.Persistence.Migrations
                         .HasColumnName("studio_id");
 
                     b.Property<string>("Address")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("address");
@@ -140,7 +139,6 @@ namespace Marketplace.Infrastructure.Persistence.Migrations
                         .HasColumnName("catalog_changed_at");
 
                     b.Property<string>("City")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("city");
@@ -160,11 +158,11 @@ namespace Marketplace.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_published");
 
-                    b.Property<double>("Latitude")
+                    b.Property<double?>("Latitude")
                         .HasColumnType("double precision")
                         .HasColumnName("latitude");
 
-                    b.Property<double>("Longitude")
+                    b.Property<double?>("Longitude")
                         .HasColumnType("double precision")
                         .HasColumnName("longitude");
 
@@ -178,6 +176,10 @@ namespace Marketplace.Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasColumnName("phone");
+
+                    b.Property<DateTime?>("StudioDetailsChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("studio_details_changed_at");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()

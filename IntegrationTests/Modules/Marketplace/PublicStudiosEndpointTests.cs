@@ -45,18 +45,14 @@ public class PublicStudiosEndpointTests
         _ceramicId = (await ceramic.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
         // Created after the services, so the listing copies them straight away
-        (await ownerA.PutAsJsonAsync("/api/marketplace/listing", Listing("Studio A", 50.06, 19.94))).EnsureSuccessStatusCode();
-        (await ownerA.PostAsync("/api/marketplace/listing/publish", null)).EnsureSuccessStatusCode();
+        await ownerA.PublishListingAsync("Studio A", 50.06, 19.94);
 
         using var ownerB = _factory.CreateClientFor(_seed.StudioB.OwnerUserId);
-        (await ownerB.PutAsJsonAsync("/api/marketplace/listing", Listing("Studio B", 50.07, 19.95))).EnsureSuccessStatusCode();
+        await ownerB.CreateListingAsync("Studio B", 50.07, 19.95);
     }
 
     [OneTimeTearDown]
     public async Task TearDownAsync() => await _factory.DisposeAsync();
-
-    private static object Listing(string name, double latitude, double longitude) =>
-        new { name, address = "ul. Długa 1", city = "Kraków", latitude, longitude };
 
     private async Task<List<JsonElement>> SearchAsync(string query, HttpClient? client = null)
     {

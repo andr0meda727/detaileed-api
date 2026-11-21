@@ -28,8 +28,10 @@ public sealed record StudioPinDto(
     Guid StudioId, string Name, string City, double Latitude, double Longitude,
     List<ServiceCategory> Categories, decimal? FromPrice, double? AverageRating = null, int ReviewCount = 0)
 {
+    // Only published listings are pinned, and a published listing always has its city and pin (HasCompleteDetails)
     public static StudioPinDto From(StudioListing listing, StudioSearchRequest request, RatingSummary rating) => new(
-        listing.StudioId, listing.Name, listing.City, listing.Latitude, listing.Longitude, listing.Categories.ToList(),
+        listing.StudioId, listing.Name, listing.City!, listing.Latitude!.Value, listing.Longitude!.Value,
+        listing.Categories.ToList(),
         request.VehicleSize is { } size && listing.FromPrice(size, request.Category) is { } cents ? cents / 100m : null,
         rating.AverageRating, rating.ReviewCount);
 }

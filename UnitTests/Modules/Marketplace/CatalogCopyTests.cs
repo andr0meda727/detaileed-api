@@ -11,7 +11,7 @@ public class CatalogCopyTests
     private static readonly DateTime At = new(2026, 11, 2, 9, 0, 0, DateTimeKind.Utc);
 
     private static StudioListing Listing() =>
-        StudioListing.Create(Guid.NewGuid(), new ListingProfile("Studio", null, "ul. 1", "Kraków", null, 50, 19));
+        StudioListing.Create(Guid.NewGuid(), new ListedStudioDetails("Studio", null, "ul. 1", "Kraków", 50, 19), At);
 
     [Test]
     public void CopiesServicesAndPricesByName()

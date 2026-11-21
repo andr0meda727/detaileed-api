@@ -38,11 +38,7 @@ public class BookingRequestEndpointTests
         })).EnsureSuccessStatusCode();
         var ppf = await owner.PostAsJsonAsync("/api/service", new { name = "PPF", category = "Ppf" });
         _ppfId = (await ppf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
-        (await owner.PutAsJsonAsync("/api/marketplace/listing", new
-        {
-            name = "Detail Studio", address = "ul. Długa 1", city = "Kraków", latitude = 50.06, longitude = 19.94
-        })).EnsureSuccessStatusCode();
-        (await owner.PostAsync("/api/marketplace/listing/publish", null)).EnsureSuccessStatusCode();
+        await owner.PublishListingAsync();
     }
 
     [OneTimeTearDown]
