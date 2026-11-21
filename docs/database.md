@@ -15,6 +15,7 @@ Each module owns a schema and has its own `DbContext` and migrations:
 | `IdentityDbContext` | `identity` | `Modules/Identity/Identity.Infrastructure/Persistence/Migrations` | `identity.__EFMigrationsHistory` |
 | `MarketplaceDbContext` | `marketplace` | `Modules/Marketplace/Marketplace.Infrastructure/Persistence/Migrations` | `marketplace.__EFMigrationsHistory` |
 | `CustomersDbContext` | `customers` | `Modules/Customers/Customers.Infrastructure/Persistence/Migrations` | `customers.__EFMigrationsHistory` |
+| `ChatDbContext` | `chat` | `Modules/Chat/Chat.Infrastructure/Persistence/Migrations` | `chat.__EFMigrationsHistory` |
 
 **Order matters:** apply `ApplicationDbContext` first, then the modules. Module migrations may adopt tables
 that the core baseline created; for example, Inventory moves `d.inventory*` into the `inventory` schema and CRM moves `d.client` and
@@ -35,6 +36,7 @@ dotnet ef migrations add <Name> -p Modules/Scheduling/Scheduling.Infrastructure 
 dotnet ef migrations add <Name> -p Modules/Identity/Identity.Infrastructure -s Api -c IdentityDbContext -o Persistence/Migrations
 dotnet ef migrations add <Name> -p Modules/Marketplace/Marketplace.Infrastructure -s Api -c MarketplaceDbContext -o Persistence/Migrations
 dotnet ef migrations add <Name> -p Modules/Customers/Customers.Infrastructure -s Api -c CustomersDbContext -o Persistence/Migrations
+dotnet ef migrations add <Name> -p Modules/Chat/Chat.Infrastructure -s Api -c ChatDbContext -o Persistence/Migrations
 ```
 
 Review the generated `Up`/`Down` code before committing it.

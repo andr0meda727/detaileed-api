@@ -1,7 +1,8 @@
 # Plan: Chat module (customer ↔ studio, live over SignalR)
 
-Status: planned, not started (2026-11-21). Reviewed against the code on 2026-11-21; the prerequisite fix to
-`TenantDbContext` (explicit `StudioId` on new rows is kept) is already done.
+Status: backend done (2026-11-21), steps 0–9 below; the `InitialChat` migration still has to go out to Supabase as in
+`docs/database.md`. The frontend is separate work. Where the build differed from the first draft (cursor paging,
+open endpoints with a body, `TrySaveChangesAsync`, the rename done in SQL), this document was updated to match.
 
 ## Context
 Marketplace customers and studios have no way to talk today apart from booking requests and emails. The goal is a
@@ -39,7 +40,7 @@ uses it, like Inventory) and no outbox (the module publishes nothing; it only co
     read state (your own messages count as read).
   - `bool MarkRead(ChatSide side, DateTime upTo)`: only moves forward; returns whether anything changed. Callers pass
     the `SentAt` of a stored message, never a client's clock (see `MarkRead` below).
-  - `bool RenameStudio(string name, DateTime asOf)`: ignores snapshots older than `StudioNameAsOf`.
+  - No rename method: the studio name is updated in bulk by the consumer (Infrastructure), with the ordering rule in SQL.
 - `Message : ITenantEntity`: `Id` (`Guid.CreateVersion7()`), `ConversationId`, `StudioId`, `Side` (`Customer`/`Studio`),
   `SenderUserId`, `Body`, `SentAt`, `ClientMessageId`.
   - `SentAt` is truncated to whole microseconds when created (Postgres `timestamptz` keeps microseconds, .NET keeps
@@ -181,7 +182,7 @@ The side is a parameter of the message (the controller sets it), so one handler 
 ## Order (small commits)
 0. Done: `TenantDbContext` keeps an explicit `StudioId` (+ regression test).
 1. Project skeletons + sln/Dockerfile/host/architecture test.
-2. Domain + unit tests (`Post`, `MarkRead`, `RenameStudio`, limits, `SentAt` truncation).
+2. Domain + unit tests (`Post`, `MarkRead`, limits, `SentAt` truncation).
 3. DbContext, configurations, `InitialChat` migration.
 4. Contracts: `IStudioDirectory.IsActiveMemberAsync`, Scheduling `IRequestContacts`.
 5. Open/List/UnreadCount/Messages/Send/Read slices + controllers (notifier a no-op for now). Add
@@ -221,6 +222,9 @@ The side is a parameter of the message (the controller sets it), so one handler 
   every request anyway).
 - The customer's name is a copy from when the conversation was opened: Customers publishes no event when a profile
   changes. (The studio's name is kept current from `StudioDetailsChanged`.)
+- A customer opening a conversation takes the studio's name from Marketplace's listing (itself a copy) and dates it
+  "now". If the studio was renamed seconds earlier and the listing hasn't caught up, that rename's event is older and
+  is skipped, so the old name stays until the next change.
 - Read state is per side, so the studio can't see which staff member read a message.
 - A single API instance; scaling out needs a backplane (Redis).
 - Hub URLs carry the access token; they are short-lived Supabase JWTs, and the hosting log level is pinned so they

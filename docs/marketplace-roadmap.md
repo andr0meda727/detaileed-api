@@ -78,6 +78,18 @@ requests inside its hours and gets a planning view to answer them.
 - The average rating and review count are computed from the reviews when read (indexed by studio), so they are never
   out of step and concurrent reviews can't lose an update. Reviews are shown paged on the studio page.
 
+## 6. Chat between customers and studios (new Chat module) (done)
+Design and decisions: `docs/chat-module-plan.md`.
+- One conversation per studio and customer account. A customer opens one with any published studio
+  (`POST /api/me/conversations { studioId }`); a studio only with someone who sent it a booking request
+  (`POST /api/conversations { bookingRequestId }`). The studio's side is a shared inbox for all its active staff.
+- Both sides list conversations with unread counts, read a total for the badge (`unread-count`), page messages
+  newest first by cursor, send (`{ body, clientMessageId }`, idempotent per client message id, at most
+  `RateLimiting:ChatPermitLimit` a minute per user) and mark read up to a message they have seen.
+- Messages and read receipts are pushed over SignalR at `/hubs/chat` (`MessageReceived`, `ConversationRead`). The hub
+  only listens; staff call `WatchStudio(studioId)` for each inbox they show. A single API instance, no backplane yet.
+- The studio's name in conversations follows `StudioDetailsChanged`; the customer's name is copied when opening.
+
 ## Later
 Instant booking (a free slot booked without confirmation), staff schedules and skills, photos (Supabase Storage), PostGIS "nearest first", studio replies to
 reviews, SMS.
