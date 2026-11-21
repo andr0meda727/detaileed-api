@@ -16,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using Shared.Api.Authorization;
+using Shared.Api.Realtime;
 using Shared.Infrastructure.Tenancy;
 using Shared.Kernel.Tenancy;
 
@@ -75,6 +76,23 @@ public static class IdentityModule
                     ValidAudience = "authenticated",
                     ValidateIssuerSigningKey = true,
                     ClockSkew = TimeSpan.Zero
+                };
+
+                // A browser can't add a header to a WebSocket (or server-sent events), so SignalR sends the token as
+                // ?access_token=. Accept it there only for the hubs; everything else needs the header. The hosting
+                // log category stays at Warning (appsettings.json), because its request lines include the query.
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        if (context.HttpContext.Request.Path.StartsWithSegments(HubRoutes.Prefix)
+                            && context.Request.Query["access_token"] is { Count: 1 } token)
+                        {
+                            context.Token = token.ToString();
+                        }
+
+                        return Task.CompletedTask;
+                    }
                 };
             });
 

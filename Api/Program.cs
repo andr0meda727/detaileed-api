@@ -118,4 +118,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapChatHub();
+
 app.Run();
