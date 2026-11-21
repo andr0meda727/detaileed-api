@@ -60,7 +60,7 @@ public class ModuleBoundaryTests
         new("Chat",
             typeof(Chat.Domain.ChatSide).Assembly,
             typeof(Chat.Application.Abstractions.IChatDbContext).Assembly,
-            typeof(Chat.Infrastructure.ChatInfrastructureExtensions).Assembly,
+            typeof(Chat.Infrastructure.Persistence.ChatDbContext).Assembly,
             typeof(Chat.Api.ChatModule).Assembly)
     ];
 

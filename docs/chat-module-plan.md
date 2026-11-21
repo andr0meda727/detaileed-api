@@ -60,8 +60,12 @@ uses it, like Inventory) and no outbox (the module publishes nothing; it only co
 - Indexes: unique `(studio_id, customer_user_id)`; `(studio_id, last_message_at desc)`;
   `(customer_user_id, last_message_at desc)`; `(conversation_id, sent_at, id)`; unique
   `(conversation_id, sender_user_id, client_message_id)` (idempotent retries).
-- `SaveChangesCheckedAsync` (pattern: Scheduling) maps a unique violation to a `Result` code, so a race between two
-  "open conversation" calls or a double send ends with reading the existing row instead of a 500.
+- `TrySaveChangesAsync` returns false on a violation of either unique key (named `ConversationPairKey` and
+  `MessageClientIdKey`) and clears the change tracker, so a race between two "open conversation" calls or a double
+  send ends with reading the existing row instead of a 500.
+- `Conversation` has an `xmin` row version: a message and a read receipt (or two messages) changing the same
+  conversation at once throw `DbUpdateConcurrencyException` instead of one undoing the other. Send and MarkRead
+  reload and retry once or twice on it.
 - `ConversationStudioNameConsumer : IConsumer<StudioDetailsChanged>` (pattern: Marketplace's
   `ListingStudioDetailsConsumer`): bypasses the tenant filter by name, scopes by the event's `StudioId`, and updates
   `StudioName` with `ExecuteUpdateAsync` where `StudioNameAsOf < ChangedAt`, so redelivered or out-of-order events
@@ -84,7 +88,9 @@ The side is a parameter of the message (the controller sets it), so one handler 
   `IStudioDirectory.FindDetailsAsync` (works whether or not the studio is published).
 - `Conversations/GetConversations`: `GetConversationsQuery(ChatSide, PageRequest)` → `PagedResponse<ConversationDto>`
   (the other side's name, preview, `LastMessageAt`, `UnreadCount`, the other side's read state), ordered
-  `LastMessageAt desc, Id` (conversations without messages last). `UnreadCount` = the other side's messages with
+  `LastMessageAt desc, Id desc` (the indexes are built in that order). Only conversations with at least one message
+  are listed: one opened but never written to would be noise in the studio's inbox (and Postgres sorts NULLs first
+  in a descending order). `UnreadCount` = the other side's messages with
   `SentAt >` my side's `ReadUpTo` (all of them when null).
 - `Conversations/GetUnreadCount`: `GetUnreadCountQuery(ChatSide)` → total unread messages across the side's
   conversations, for the navigation badge (the paged list can't give a total).
