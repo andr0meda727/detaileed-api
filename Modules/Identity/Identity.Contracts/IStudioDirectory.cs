@@ -14,4 +14,17 @@ public interface IStudioDirectory
     /// Where to tell the studio about something that needs an answer: the emails of its active owners.
     /// </summary>
     Task<IReadOnlyList<string>> GetOwnerEmailsAsync(Guid studioId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The studio's current public details, or null when there is no such studio. Later changes are published as
+    /// <see cref="StudioDetailsChanged"/>.
+    /// </summary>
+    Task<StudioDetails?> FindDetailsAsync(Guid studioId, CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// What customers may see about a studio: its name, phone and where it is. The pin (latitude and longitude) is
+/// either complete or absent.
+/// </summary>
+public sealed record StudioDetails(
+    string Name, string? Phone, string? Address, string? City, double? Latitude, double? Longitude);

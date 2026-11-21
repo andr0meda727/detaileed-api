@@ -25,4 +25,12 @@ public sealed class StudioDirectory(IIdentityDbContext db) : IStudioDirectory
                 select user.Email)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<StudioDetails?> FindDetailsAsync(Guid studioId, CancellationToken cancellationToken = default)
+    {
+        return await db.Studios.AsNoTracking()
+            .Where(s => s.Id == studioId)
+            .Select(s => new StudioDetails(s.Name, s.Phone, s.Address, s.City, s.Latitude, s.Longitude))
+            .SingleOrDefaultAsync(cancellationToken);
+    }
 }

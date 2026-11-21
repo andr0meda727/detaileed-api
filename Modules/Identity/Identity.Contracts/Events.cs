@@ -18,3 +18,9 @@ public sealed record EmployeeInvited(
     DateTime ExpiresAt,
     bool HasAccount,
     string? StudioTimeZone = null);
+
+/// <summary>
+/// The owner changed the studio's details. Marketplace copies them onto the studio's public listing; snapshots can
+/// arrive out of order, so a consumer keeps the one with the latest <paramref name="ChangedAt"/>.
+/// </summary>
+public sealed record StudioDetailsChanged(Guid StudioId, StudioDetails Details, DateTime ChangedAt);
