@@ -1,4 +1,6 @@
+using System.Reflection;
 using System.Text.Json.Serialization;
+using Chat.Infrastructure.Consumers;
 using Chat.Api.Controllers;
 using Chat.Api.Realtime;
 using Chat.Application;
@@ -16,11 +18,13 @@ namespace Chat.Api;
 
 /// <summary>
 /// Composition root of the Chat module: conversations between a customer and a studio, stored in the database and
-/// pushed live over SignalR. The host calls <see cref="AddChatModule"/> and, after its controllers,
-/// <see cref="MapChatHub"/>.
+/// pushed live over SignalR. The host calls <see cref="AddChatModule"/>, maps <see cref="MapChatHub"/> after its
+/// controllers, and passes <see cref="ConsumersAssembly"/> to the message bus.
 /// </summary>
 public static class ChatModule
 {
+    public static Assembly ConsumersAssembly => typeof(ConversationStudioNameConsumer).Assembly;
+
     public static IServiceCollection AddChatModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddValidatorsFromAssemblyContaining<SendMessageRequestValidator>();

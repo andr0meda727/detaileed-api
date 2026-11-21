@@ -45,7 +45,7 @@ builder.Services.AddChatModule(builder.Configuration);
 // One bus for the host; every assembly with consumers is listed here
 builder.Services.AddMessaging(builder.Configuration,
     IdentityModule.ConsumersAssembly, SchedulingModule.ConsumersAssembly, InventoryModule.ConsumersAssembly, NotificationsModule.ConsumersAssembly,
-    MarketplaceModule.ConsumersAssembly);
+    MarketplaceModule.ConsumersAssembly, ChatModule.ConsumersAssembly);
 
 builder.Services.AddProxySupport();
 builder.Services.AddRateLimits(builder.Configuration);

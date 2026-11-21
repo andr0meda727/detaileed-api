@@ -24,7 +24,7 @@ public class Conversation : ITenantEntity, IAuditableEntity
 
     public Guid CustomerUserId { get; private set; }
 
-    // A copy of the studio's name, kept current from Identity's events
+    // A copy of the studio's name, kept current from Identity's StudioDetailsChanged (renamed in bulk by the consumer)
     public string StudioName { get; private set; } = null!;
 
     // When the studio's name was copied, so an older event never replaces a newer name
@@ -100,20 +100,6 @@ public class Conversation : ITenantEntity, IAuditableEntity
 
         if (side == ChatSide.Customer) CustomerReadUpTo = upTo;
         else StudioReadUpTo = upTo;
-        return true;
-    }
-
-    /// <summary>
-    /// The studio's name as of <paramref name="asOf"/>. A redelivered or older change is ignored; returns whether the
-    /// name was replaced.
-    /// </summary>
-    public bool RenameStudio(string name, DateTime asOf)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (asOf <= StudioNameAsOf) return false;
-
-        StudioName = name.Trim();
-        StudioNameAsOf = asOf;
         return true;
     }
 

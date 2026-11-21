@@ -158,17 +158,4 @@ public class ConversationTests
         Assert.That(conversation.ReadUpTo(ChatSide.Customer), Is.EqualTo(Now));
         Assert.That(conversation.ReadUpTo(ChatSide.Studio), Is.Null);
     }
-
-    [Test]
-    public void RenameStudio_TakesNewerNames_AndIgnoresOlderOrRepeatedOnes()
-    {
-        var conversation = Open();
-
-        Assert.That(conversation.RenameStudio(" Nowa Nazwa ", Now.AddHours(1)), Is.True);
-        Assert.That(conversation.RenameStudio("Nowa Nazwa", Now.AddHours(1)), Is.False);
-        Assert.That(conversation.RenameStudio("Stara Nazwa", Now.AddMinutes(30)), Is.False);
-
-        Assert.That(conversation.StudioName, Is.EqualTo("Nowa Nazwa"));
-        Assert.That(conversation.StudioNameAsOf, Is.EqualTo(Now.AddHours(1)));
-    }
 }
