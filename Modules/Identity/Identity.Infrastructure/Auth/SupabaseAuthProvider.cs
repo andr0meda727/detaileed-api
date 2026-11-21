@@ -66,7 +66,7 @@ public class SupabaseAuthProvider : IAuthProvider
     {
         if (!await _adminClient.InviteUserByEmail(email, new InviteUserByEmailOptions { RedirectTo = redirectUrl }))
         {
-            throw new InvalidOperationException($"Supabase did not send the invitation to {email}.");
+            throw new InvalidOperationException("Supabase did not send the invitation.");
         }
     }
 }
