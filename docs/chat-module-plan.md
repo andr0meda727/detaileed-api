@@ -177,7 +177,9 @@ The side is a parameter of the message (the controller sets it), so one handler 
 2. Domain + unit tests (`Post`, `MarkRead`, `RenameStudio`, limits, `SentAt` truncation).
 3. DbContext, configurations, `InitialChat` migration.
 4. Contracts: `IStudioDirectory.IsActiveMemberAsync`, Scheduling `IRequestContacts`.
-5. Open/List/UnreadCount/Messages/Send/Read slices + controllers (notifier a no-op for now).
+5. Open/List/UnreadCount/Messages/Send/Read slices + controllers (notifier a no-op for now). Add
+   `typeof(IChatDbContext)` to the mediator's `options.Assemblies` here, with the first handler: the source generator
+   rejects an assembly that doesn't reference `Mediator.Abstractions` yet (`MSG0007`).
 6. Host: `RateLimits.Chat` + middleware order; pinned hosting log level.
 7. SignalR: hub, notifier, user-id provider, query-string token, `MapChatHub`.
 8. `StudioDetailsChanged` consumer.

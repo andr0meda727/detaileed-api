@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Api.Extensions;
 using Api.Middleware;
+using Chat.Api;
 using Crm.Api;
 using Customers.Api;
 using Identity.Api;
@@ -39,6 +40,7 @@ builder.Services.AddSchedulingModule(builder.Configuration);
 builder.Services.AddNotificationsModule(builder.Configuration);
 builder.Services.AddMarketplaceModule(builder.Configuration);
 builder.Services.AddCustomersModule(builder.Configuration);
+builder.Services.AddChatModule(builder.Configuration);
 
 // One bus for the host; every assembly with consumers is listed here
 builder.Services.AddMessaging(builder.Configuration,
