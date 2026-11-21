@@ -1,51 +1,6 @@
 @Api_HostAddress = http://localhost:5174
 # Personal values (inviteeEmail, studio_id, ...) come from http-client.private.env.json; run with "dev".
 
-### Rejestracja nowego właściciela studia
-POST {{Api_HostAddress}}/api/auth/register
-Content-Type: application/json
-
-{
-  "email": "{{inviteeEmail}}",
-  "password": "{{inviteePassword}}",
-  "firstName": "Jan",
-  "lastName": "Kowalski",
-  "studio": {
-    "name": "elo elo",
-    "address": "ul. Krakowska 1, 30-001 Kraków"
-  }
-}
-
-### Rejestracja — email już zajęty (oczekiwany: 409 EMAIL_TAKEN)
-POST {{Api_HostAddress}}/api/auth/register
-Content-Type: application/json
-
-{
-  "email": "owner@detaileed.pl",
-  "password": "Haslo1234!",
-  "firstName": "Jan",
-  "lastName": "Kowalski",
-  "studio": {
-    "name": "Drugie Studio",
-    "address": "ul. Warszawska 1"
-  }
-}
-
-### Rejestracja — brak wymaganych pól (oczekiwany: 400)
-POST {{Api_HostAddress}}/api/auth/register
-Content-Type: application/json
-
-{
-  "email": "",
-  "password": "",
-  "firstName": "",
-  "lastName": "",
-  "studio": {
-    "name": ""
-  }
-}
-
-
 ### Zaproszenie nowego pracownika (nie istnieje w systemie)
 POST {{Api_HostAddress}}/api/employees/invite
 Content-Type: application/json
