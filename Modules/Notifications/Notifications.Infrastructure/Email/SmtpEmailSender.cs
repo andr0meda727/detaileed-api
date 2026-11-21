@@ -17,7 +17,7 @@ public class SmtpEmailSender(IConfiguration config) : IEmailSender
     private readonly string _from = config["Email:From"]
         ?? throw new InvalidOperationException("Brak Email:From");
 
-    private readonly string _fromName = config["Email:FromName"] ?? "DetailFlow";
+    private readonly string _fromName = config["Email:FromName"] ?? "Detaileed";
 
     public async Task SendInvitationEmailAsync(
         string to, string studioName, string acceptUrl, DateTime expiresAt, TimeZoneInfo timeZone)

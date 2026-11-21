@@ -30,7 +30,7 @@ public static class MessagingExtensions
         {
             options.ConnectionString = configuration.GetConnectionString("DefaultConnection");
             options.Schema = TransportSchema;
-            options.Role = "detailflow_transport";
+            options.Role = "detaileed_transport";
         });
 
         // Creates the transport's schema and tables on startup if they are missing; the database already exists

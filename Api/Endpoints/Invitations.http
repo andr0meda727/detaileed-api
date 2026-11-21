@@ -21,7 +21,7 @@ POST {{Api_HostAddress}}/api/auth/register
 Content-Type: application/json
 
 {
-  "email": "owner@detailflow.pl",
+  "email": "owner@detaileed.pl",
   "password": "Haslo1234!",
   "firstName": "Jan",
   "lastName": "Kowalski",
@@ -76,7 +76,7 @@ Authorization: Bearer {{auth_token}}
 X-Studio-Id: {{studio_id}}
 
 {
-  "email": "owner@detailflow.pl",
+  "email": "owner@detaileed.pl",
   "roleId": 3
 }
 

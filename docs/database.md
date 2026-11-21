@@ -116,7 +116,7 @@ publishes `ClientDetailsChanged` / `VehicleDetailsChanged`.
 The message bus runs on MassTransit's PostgreSQL transport in the same database:
 
 - The `transport` schema holds queues, topics and messages. MassTransit creates it on startup if it is missing,
-  together with a `detailflow_transport` role, so it is not part of the EF migrations. The connection user
+  together with a `detaileed_transport` role, so it is not part of the EF migrations. The connection user
   needs permission to create a schema and a role (Supabase's `postgres` user has both).
 - Each module that publishes events has an `outbox_message` table in its own schema (e.g. `crm.outbox_message`),
   created by that module's migrations. Events are written there in the same transaction as the data change,
@@ -137,7 +137,7 @@ transaction. Later migrations are applied the usual way ("Applying migrations to
 The procedure is kept for reference. Production had last been migrated with `InitialSync`; once the tables moved,
 an app built before the modules no longer matched the schema, so the SQL and the new version go out together.
 
-1. Take a backup: `pg_dump --format=custom --file=detailflow-before-modules.dump "<direct connection string>"`.
+1. Take a backup: `pg_dump --format=custom --file=detaileed-before-modules.dump "<direct connection string>"`.
 2. Run `docs/sql/01-reconcile-live-schema-with-baseline.sql` (fixes the hand-built schema, records the Baseline).
 3. Generate and run the migration scripts in this order (the first one starts after the Baseline):
 

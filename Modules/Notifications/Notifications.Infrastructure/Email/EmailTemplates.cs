@@ -24,7 +24,7 @@ public static class EmailTemplates
             <html>
             <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2>Zaproszenie do {name}</h2>
-                <p>Zostałeś zaproszony do dołączenia do studia <strong>{name}</strong> w aplikacji DetailFlow.</p>
+                <p>Zostałeś zaproszony do dołączenia do studia <strong>{name}</strong> w aplikacji Detaileed.</p>
                 <p>Kliknij przycisk poniżej aby zaakceptować zaproszenie:</p>
                 <a href="{url}"
                    style="display: inline-block; padding: 12px 24px; background-color: #2563eb;
@@ -69,7 +69,7 @@ public static class EmailTemplates
              prosi o wizytę <strong>{when:dd.MM.yyyy HH:mm}</strong> ({Html(timeZone.Id)})
              dla pojazdu {Html(licensePlate)}.</p>
              <ul>{list}</ul>
-             <p>Zaakceptuj albo odrzuć prośbę w panelu DetailFlow:</p>
+             <p>Zaakceptuj albo odrzuć prośbę w panelu Detaileed:</p>
              {Button(requestUrl, "Zobacz prośbę")}
              """);
     }

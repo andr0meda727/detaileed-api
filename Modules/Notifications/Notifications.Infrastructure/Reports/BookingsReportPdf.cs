@@ -30,7 +30,7 @@ public class BookingsReportPdf
 
                 page.Header().Column(col =>
                 {
-                    col.Item().Text("DetailFlow — Raport wizyt")
+                    col.Item().Text("Detaileed — Raport wizyt")
                         .Bold().FontSize(18);
                     col.Item().Text(
                         $"Okres: {dateFrom:dd.MM.yyyy} — {dateTo:dd.MM.yyyy}  |  Strefa czasowa: {timeZone.Id}")
