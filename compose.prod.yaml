@@ -1,6 +1,6 @@
 services:
   api:
-    image: ghcr.io/<your-org-or-user>/detaileed-api:${IMAGE_TAG:-latest}
+    image: ghcr.io/<your-org-or-user>/detaileed-backend:${IMAGE_TAG:-latest}
     container_name: detaileed-api
     restart: unless-stopped
     env_file:
