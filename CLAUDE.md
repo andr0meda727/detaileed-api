@@ -126,7 +126,7 @@ A new module gets added to `ModuleBoundaryTests.Modules`, so every rule applies 
 - Integration tests share one Postgres container (`PostgresFixture`, SetUpFixture in the root `IntegrationTests` namespace).
   - Each fixture seeds its own studios through `TwoStudiosSeed`, so assert on seeded IDs, not on global counts.
   - API tests use `ApiFactory` with `TestAuthHandler`. Authenticate with `CreateClientFor(userId)`, which sets the `X-Test-User-Id` header.
-  - `ApiFactory.Auth` is a `FakeAuthProvider` in place of Supabase; signing up inserts the profile row like the trigger does.
+  - `ApiFactory.Auth` is a `FakeAuthProvider` in place of Supabase; it records invitations instead of sending them.
   - `ApiFactory.Email` is a `FakeEmailSender` that records emails instead of using SMTP. Endpoints that read the
     caller's email (reports) need `CreateClientFor(userId, email)`. Bus consumers run asynchronously, so poll with a deadline.
   - Pure logic (domain, validators, email templates, the PDF, consumers with NSubstitute) belongs in `UnitTests`;

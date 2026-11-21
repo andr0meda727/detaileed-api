@@ -47,13 +47,13 @@ public static class IdentityModule
         services.AddSingleton(new FrontendSettings(frontendBaseUrl));
         services.TryAddSingleton(TimeProvider.System);
 
-        services.AddValidatorsFromAssemblyContaining<RegisterOwnerRequestValidator>();
+        services.AddValidatorsFromAssemblyContaining<CreateStudioRequestValidator>();
 
         services.AddIdentityInfrastructure(configuration);
 
         AddSupabaseAuthentication(services, configuration);
 
-        services.AddControllers().AddApplicationPart(typeof(AuthController).Assembly);
+        services.AddControllers().AddApplicationPart(typeof(StudiosController).Assembly);
 
         return services;
     }

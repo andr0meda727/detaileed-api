@@ -28,7 +28,6 @@ public class ApiFactory(IReadOnlyDictionary<string, string?>? settings = null) :
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:DefaultConnection", PostgresFixture.ConnectionString);
         builder.UseSetting("Supabase:Url", "https://supabase.test");
-        builder.UseSetting("Supabase:Key", "test-anon-key");
         builder.UseSetting("Supabase:ServiceRoleKey", "test-service-role-key");
         foreach (var (key, value) in settings ?? new Dictionary<string, string?>()) builder.UseSetting(key, value);
 

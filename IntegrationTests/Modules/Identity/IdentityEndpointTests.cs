@@ -211,42 +211,6 @@ public class IdentityEndpointTests
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
-    [Test]
-    public async Task Register_CreatesTheStudioWithItsOwner()
-    {
-        var email = $"{Guid.NewGuid():N}@test.pl";
-        var anonymous = _factory.CreateClient();
-
-        var response = await anonymous.PostAsJsonAsync("/api/auth/register", new
-        {
-            email, password = "Haslo1234", firstName = "Adam", lastName = "Nowak",
-            studio = new { name = "Nowe Studio", phone = "500600700" }
-        });
-
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        using var owner = _factory.CreateClientFor(_factory.Auth.Accounts[email]);
-        var studios = await owner.GetFromJsonAsync<JsonElement>("/api/studios/my");
-        Assert.That(studios[0].GetProperty("name").GetString(), Is.EqualTo("Nowe Studio"));
-        Assert.That(studios[0].GetProperty("role").GetString(), Is.EqualTo("Owner"));
-        Assert.That(studios[0].GetProperty("timeZone").GetString(), Is.EqualTo("Europe/Warsaw"));
-        // The confirmation link leads to the dashboard, whatever Supabase's Site URL is
-        Assert.That(_factory.Auth.SignUpRedirects[email], Is.EqualTo("https://app.detaileed.com/"));
-    }
-
-    [Test]
-    public async Task Register_WithAnExistingAccount_IsAConflict()
-    {
-        var email = $"{Guid.NewGuid():N}@test.pl";
-        _factory.Auth.Accounts[email] = Guid.NewGuid();
-
-        var response = await _factory.CreateClient().PostAsJsonAsync("/api/auth/register", new
-        {
-            email, password = "Haslo1234", firstName = "Adam", lastName = "Nowak", studio = new { name = "X" }
-        });
-
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
-        Assert.That(await ProblemCodeAsync(response), Is.EqualTo("EMAIL_TAKEN"));
-    }
 
     // A signed-up account (profile row) that works in no studio yet
     private static async Task<Guid> CreateUserWithoutStudioAsync()
