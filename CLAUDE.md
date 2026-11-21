@@ -144,7 +144,8 @@ A new module gets added to `ModuleBoundaryTests.Modules`, so every rule applies 
   customer itself. Customer rows are per account,
   not per studio: `CustomersDbContext` has an `Owner` filter on `ICustomerOwned` (`UserId == ITenantContext.UserId`),
   failing closed like the tenant filter. Shared input rules live in `Shared.Application.Validation`. Marketplace listings are public, cross-studio data: not `ITenantEntity`, so owner
-  endpoints match `ITenantContext.StudioId` themselves. Public endpoints use `[AllowAnonymous]`, `[AllowWithoutStudio]`
+  endpoints match `ITenantContext.StudioId` themselves. A listing's name, phone, address, city and pin are a copy of
+  Identity's studio details (`StudioDetailsChanged`); the owner writes only its description. Public endpoints use `[AllowAnonymous]`, `[AllowWithoutStudio]`
   and `[EnableRateLimiting(RateLimits.Public)]`. `PublicStudiosController` is output-cached (`PublicCatalogCachePolicy`,
   60 s, shared by all callers); `PublicCatalogEvictionInterceptor` empties it after every `MarketplaceDbContext` save, so
   public answers must be built only from Marketplace's own tables (one exception: the studio's `timeZone`, read through

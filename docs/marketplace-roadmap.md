@@ -17,14 +17,16 @@ requests inside its hours and gets a planning view to answer them.
 
 ## 2. Public studio profile and map search (new Marketplace module) (done)
 - Module `Modules/Marketplace`, schema `marketplace`. Add it to `ModuleBoundaryTests.Modules`, the Dockerfile and the solution.
-- `StudioListing`, one per studio. The owner edits it through a staff endpoint:
-  - description, address and city;
-  - `Latitude`/`Longitude` (the owner places a pin; no geocoding service);
-  - phone and `IsPublished` (off until the owner publishes).
+- `StudioListing`, one per studio. The owner writes only its description and `IsPublished` (off until the owner
+  publishes) through a staff endpoint.
+- The studio's name, phone, address, city and pin (`Latitude`/`Longitude`, placed by the owner; no geocoding service)
+  are Identity's, edited with `PUT /api/studios/current`. The listing keeps a copy: a new listing pulls it through
+  `IStudioDirectory.FindDetailsAsync`, and `StudioDetailsChanged` keeps it current (`ListingStudioDetailsConsumer`).
+  So a studio has one name everywhere. Publishing needs an address, city and pin; a listing that loses them is unpublished.
 - Marketplace keeps its own copy of each studio's services, categories and prices. A new Scheduling event,
   `ServiceCatalogChanged`, feeds it from the outbox, the same way `BookingCopiesConsumer` keeps booking copies.
   A new listing pulls the current catalogue through `Scheduling.Contracts.IServiceCatalogSource`, so existing
-  studios need no backfill. The public name is the listing's own (the owner enters it), not Identity's studio name.
+  studios need no backfill.
 - Public, anonymous, rate-limited endpoints (`AddRateLimiter`):
   - `GET /api/public/studios?minLat&maxLat&minLng&maxLng&category&vehicleSize&page` searches the visible map area.
     It uses a lat/lng index (no PostGIS yet) and returns the pin, name, rating, categories and the "from" price for
