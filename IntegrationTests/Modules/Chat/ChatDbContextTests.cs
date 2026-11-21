@@ -1,3 +1,4 @@
+using Chat.Application.Abstractions;
 using Chat.Domain;
 using Microsoft.EntityFrameworkCore;
 using Shared.Infrastructure.Tenancy;
@@ -84,13 +85,13 @@ public class ChatDbContextTests
         await using (var first = PostgresFixture.CreateChatDbContext(Customer(anna)))
         {
             first.Conversations.Add(Conversation.Open(studio, "Detail Studio", anna, "Anna", Now));
-            Assert.That(await first.TrySaveChangesAsync(), Is.True);
+            Assert.That(await first.TrySaveChangesAsync(), Is.EqualTo(SaveOutcome.Saved));
         }
 
         await using var second = PostgresFixture.CreateChatDbContext(Customer(anna));
         second.Conversations.Add(Conversation.Open(studio, "Detail Studio", anna, "Anna", Now));
 
-        Assert.That(await second.TrySaveChangesAsync(), Is.False);
+        Assert.That(await second.TrySaveChangesAsync(), Is.EqualTo(SaveOutcome.AlreadyExists));
         Assert.That(second.ChangeTracker.Entries(), Is.Empty);
         Assert.That(await second.ConversationsOfAnyStudio.CountAsync(c => c.StudioId == studio && c.CustomerUserId == anna),
             Is.EqualTo(1));
@@ -114,7 +115,7 @@ public class ChatDbContextTests
         var loaded = await retry.ConversationsOfAnyStudio.SingleAsync(c => c.Id == conversation.Id);
         retry.Messages.Add(loaded.Post(ChatSide.Customer, anna, "Hej", clientMessageId, Now.AddSeconds(1)).Value!);
 
-        Assert.That(await retry.TrySaveChangesAsync(), Is.False);
+        Assert.That(await retry.TrySaveChangesAsync(), Is.EqualTo(SaveOutcome.AlreadyExists));
         Assert.That(await retry.MessagesOfAnyStudio.CountAsync(m => m.ConversationId == conversation.Id), Is.EqualTo(1));
     }
 
@@ -139,6 +140,7 @@ public class ChatDbContextTests
         await customer.SaveChangesAsync();
         staff.Messages.Add(asStaff.Post(ChatSide.Studio, Guid.NewGuid(), "Dzień dobry", Guid.NewGuid(), Now).Value!);
 
-        Assert.That(() => staff.SaveChangesAsync(), Throws.InstanceOf<DbUpdateConcurrencyException>());
+        Assert.That(await staff.TrySaveChangesAsync(), Is.EqualTo(SaveOutcome.Conflict));
+        Assert.That(staff.ChangeTracker.Entries(), Is.Empty);
     }
 }

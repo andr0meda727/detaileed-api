@@ -8,3 +8,8 @@ public enum ChatSide
     Customer,
     Studio
 }
+
+public static class ChatSides
+{
+    public static ChatSide Other(this ChatSide side) => side == ChatSide.Customer ? ChatSide.Studio : ChatSide.Customer;
+}

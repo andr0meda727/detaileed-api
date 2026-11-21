@@ -1,4 +1,5 @@
-﻿using Crm.Application.Abstractions;
+﻿using Chat.Application.Abstractions;
+using Crm.Application.Abstractions;
 using Customers.Application.Abstractions;
 using Identity.Application.Abstractions;
 using Inventory.Application.Abstractions;
@@ -23,6 +24,7 @@ public static class ServiceCollectionExtensions
             options.ServiceLifetime = ServiceLifetime.Scoped;
             options.Assemblies =
             [
+                typeof(IChatDbContext),
                 typeof(ICrmDbContext),
                 typeof(ICustomersDbContext),
                 typeof(IIdentityDbContext),

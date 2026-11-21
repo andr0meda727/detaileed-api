@@ -94,30 +94,31 @@ The side is a parameter of the message (the controller sets it), so one handler 
   `SentAt >` my side's `ReadUpTo` (all of them when null).
 - `Conversations/GetUnreadCount`: `GetUnreadCountQuery(ChatSide)` → total unread messages across the side's
   conversations, for the navigation badge (the paged list can't give a total).
-- `Messages/GetMessages`: `GetMessagesQuery(ChatSide, Guid ConversationId, Guid? Before, Guid? After, int Limit)` →
-  `MessagesPage(items, hasMore)`. **Keyset instead of `PageRequest`**: in a chat new messages shift offset pages;
-  `before` loads older history, `after` catches up after a reconnect. Note the exception in `docs/api-conventions.md`.
-  - The cursor is a message id, but ids are **not** compared directly (C# `Guid` has no `<`, and .NET and Postgres
-    order UUIDs differently). The handler loads the cursor message from the same conversation (else
-    `MESSAGE_NOT_FOUND`) and compares the pair: `SentAt < c.SentAt || (SentAt == c.SentAt && Id < c.Id)` for
-    `before`, mirrored for `after`, ordered by `(SentAt, Id)` to use the index.
-  - Validator: at most one of `Before`/`After`, `Limit` 1–100 (default 50).
+- `Messages/GetMessages`: `GetMessagesQuery(ChatSide, Guid ConversationId, CursorRequest Paging)` →
+  `CursorResponse<MessageDto>`, newest first. This is the cursor paging `docs/api-conventions.md` already describes
+  (as for reviews): `TimeCursor(SentAt, Id)`, `INVALID_CURSOR` on a bad one, `ToCursorResponseAsync`. Offset pages
+  would repeat messages as new ones arrive at the top.
+  - Older history: pass `nextCursor` back as `cursor`. Catching up after a reconnect: read from the top (no cursor)
+    and keep going until a message the app already has; there is no separate "after" mode.
+  - The (SentAt, Id) comparison runs in Postgres, which also does the ordering, so comparing UUIDs there is
+    consistent. `SentAt` is stored to the microsecond, so a cursor round-trips exactly.
 - `Messages/SendMessage`: `SendMessageCommand(ChatSide, Guid ConversationId, SendMessageRequest(Body, ClientMessageId))`
   → save, then `IChatNotifier.MessageSentAsync(...)`. A retry with the same `ClientMessageId` returns the existing message.
-- `Messages/MarkRead`: `MarkReadCommand(ChatSide, Guid ConversationId, Guid UpToMessageId)` → loads that message from
+- `Messages/MarkRead`: `MarkReadCommand(ChatSide, Guid ConversationId, MarkReadRequest(UpToMessageId))` → loads that message from
   the conversation (else `MESSAGE_NOT_FOUND`) and calls `MarkRead(side, message.SentAt)`. The client says *which*
   message it has seen, never *when*, so a wrong or hostile clock can't mark future messages as read. If anything
   changed, push `ConversationRead` to the other side.
 - `IChatNotifier` (interface in Application, no ASP.NET, as `Application_DoesNotDependOnInfrastructureOrWeb` requires):
-  `MessageSentAsync(studioId, customerUserId, MessageDto)`, `ReadAsync(studioId, customerUserId, conversationId, side, upTo)`.
-  Called **after** `SaveChanges`; a failed push is logged and swallowed (the database is the source of truth; the
-  client catches up with `after`).
-- FluentValidation validators for `SendMessageRequest` (not empty, ≤ 2000, `ClientMessageId` not empty) and the
-  messages query; shared rules from `Shared.Application.Validation` where they fit.
+  `MessageSentAsync(studioId, customerUserId, MessageDto)`, `ConversationReadAsync(studioId, customerUserId,
+  ConversationReadDto(conversationId, side, upTo))`. Called **after** `SaveChanges`; a failed push is logged and
+  swallowed (the database is the source of truth; the client catches up by reading again). Until step 7 a
+  `NullChatNotifier` in `Chat.Api` stands in.
+- FluentValidation validators for `SendMessageRequest` (not empty, ≤ 2000 after trimming, `ClientMessageId` not
+  empty), `MarkReadRequest` and both open requests. `CursorRequest`/`PageRequest` limits are model validation.
 
 ### Api (`Chat.Api`)
 - `MyConversationsController`: `api/me/conversations`, `[Authorize]`, `[AllowWithoutStudio]` (pattern:
-  `MyBookingRequestsController`): `POST {studioId}` (open), `GET` (list), `GET unread-count`, `GET {id}/messages`,
+  `MyBookingRequestsController`): `POST { studioId }` (open), `GET` (list), `GET unread-count`, `GET {id}/messages`,
   `POST {id}/messages` (`[EnableRateLimiting(RateLimits.Chat)]`), `POST {id}/read`.
 - `ConversationsController`: `api/conversations`, `[Authorize]`, tenant-scoped (pattern: `BookingRequestsController`):
   `POST { bookingRequestId }`, `GET`, `GET unread-count`, `GET {id}/messages`,
@@ -195,7 +196,7 @@ The side is a parameter of the message (the controller sets it), so one handler 
 - `dotnet build detaileed_api.sln`, `dotnet test ArchitectureTests`, `dotnet test UnitTests`.
 - `dotnet test IntegrationTests --filter "FullyQualifiedName~Chat"` (Docker):
   - handlers on real Postgres: get-or-create is idempotent, a repeated `ClientMessageId` doesn't duplicate, keyset
-    `before`/`after` (including two messages with the same `SentAt`), unread counts and read state only move forward,
+    cursor paging (including two messages with the same `SentAt`), unread counts and read state only move forward,
     `MarkRead` with a message of another conversation is `MESSAGE_NOT_FOUND`;
   - isolation: studio B doesn't see studio A's conversations, customer X doesn't see customer Y's (404);
   - a staff member of studio B with one membership opens a conversation with studio A as a customer: it is stored
@@ -226,4 +227,4 @@ The side is a parameter of the message (the controller sets it), so one handler 
   aren't logged.
 - The frontend (two apps in `WebstormProjects/detaileed`) is separate work: conversation list, chat window, unread
   badge, a `HubConnection` with `accessTokenFactory`, `withCredentials: false` and `withAutomaticReconnect`, calling
-  `WatchStudio` again and catching up with `after` after a reconnect.
+  `WatchStudio` again and reading from the top until a known message after a reconnect.

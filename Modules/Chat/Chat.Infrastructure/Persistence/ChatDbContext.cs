@@ -30,12 +30,17 @@ public class ChatDbContext(DbContextOptions<ChatDbContext> options, ITenantConte
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ChatDbContext).Assembly);
     }
 
-    public async Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken = default)
+    public async Task<SaveOutcome> TrySaveChangesAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             await SaveChangesAsync(cancellationToken);
-            return true;
+            return SaveOutcome.Saved;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            ChangeTracker.Clear();
+            return SaveOutcome.Conflict;
         }
         catch (DbUpdateException e) when (e.InnerException is PostgresException
                                           {
@@ -44,7 +49,7 @@ public class ChatDbContext(DbContextOptions<ChatDbContext> options, ITenantConte
                                           })
         {
             ChangeTracker.Clear();
-            return false;
+            return SaveOutcome.AlreadyExists;
         }
     }
 }

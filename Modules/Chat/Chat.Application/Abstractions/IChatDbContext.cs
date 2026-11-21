@@ -21,9 +21,19 @@ public interface IChatDbContext
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Saves, or returns false when another request saved the same conversation (studio and customer) or the same
-    /// message (sender and client message id) first. The change tracker is then cleared, so the caller can read the
-    /// row that won.
+    /// Saves, or reports why another request got there first. On anything but <see cref="SaveOutcome.Saved"/> the
+    /// change tracker is cleared, so the caller can read the current rows and decide again.
     /// </summary>
-    Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken = default);
+    Task<SaveOutcome> TrySaveChangesAsync(CancellationToken cancellationToken = default);
+}
+
+public enum SaveOutcome
+{
+    Saved,
+
+    // The same conversation (studio and customer) or the same message (sender and client message id) was saved first
+    AlreadyExists,
+
+    // The conversation was changed by someone else since it was read (its row version moved)
+    Conflict
 }

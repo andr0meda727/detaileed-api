@@ -1,4 +1,8 @@
+using Chat.Api.Controllers;
+using Chat.Application;
+using Chat.Application.Abstractions;
 using Chat.Infrastructure;
+using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,7 +16,13 @@ public static class ChatModule
 {
     public static IServiceCollection AddChatModule(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddValidatorsFromAssemblyContaining<SendMessageRequestValidator>();
+
         services.AddChatInfrastructure(configuration);
+
+        services.AddScoped<IChatNotifier, NullChatNotifier>();
+
+        services.AddControllers().AddApplicationPart(typeof(ConversationsController).Assembly);
 
         return services;
     }
