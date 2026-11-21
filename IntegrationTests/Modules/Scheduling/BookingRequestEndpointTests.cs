@@ -274,6 +274,29 @@ public class BookingRequestEndpointTests
         Assert.That(list.GetProperty("items").EnumerateArray().Select(r => r.GetProperty("id").GetGuid()), Does.Not.Contain(id));
         Assert.That(accept.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
+
+    [Test]
+    public async Task StaffOfAnotherStudio_CanBookAsACustomer_AndTheRequestGoesToTheChosenStudio()
+    {
+        // B's owner has one membership, so each of their calls resolves studio B as the tenant
+        using var otherOwner = _factory.CreateClientFor(_seed.StudioB.OwnerUserId, $"owner-{_seed.StudioB.OwnerUserId:N}@test.pl");
+        (await otherOwner.PutAsJsonAsync("/api/me/profile", new { name = "Jan Właściciel", phone = "500600701" })).EnsureSuccessStatusCode();
+
+        var response = await otherOwner.PostAsJsonAsync("/api/me/booking-requests", new
+        {
+            studioId = _seed.StudioA.StudioId, serviceIds = new[] { _washId },
+            vehicle = new { licensePlate = "KR 2", size = "Medium" }, preferredAt = InTwoDays
+        });
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var id = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        using var owner = _factory.CreateClientFor(_seed.StudioA.OwnerUserId);
+        var studioA = await owner.GetFromJsonAsync<JsonElement>("/api/booking-requests");
+        var studioB = await otherOwner.GetFromJsonAsync<JsonElement>("/api/booking-requests");
+        Assert.That(studioA.GetProperty("items").EnumerateArray().Select(r => r.GetProperty("id").GetGuid()), Does.Contain(id));
+        Assert.That(studioB.GetProperty("items").EnumerateArray().Select(r => r.GetProperty("id").GetGuid()), Does.Not.Contain(id));
+    }
+
     [Test]
     public async Task TheOwnerHearsAboutTheRequest_AndTheCustomerAboutTheAnswer()
     {
