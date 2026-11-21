@@ -50,6 +50,8 @@ spaces, at most 15; brand and model at most 50; NIP 10 digits with a valid check
 |---|---|---|
 | `POST /api/studios` | user | `{ name, phone?, email?, address?, timeZone? }` → 201 `{ studioId, name, role: "Owner", address, timeZone }`; the caller becomes its owner. Works without a studio (onboarding) and for owners adding a location. At most 10 owned studios: `STUDIO_LIMIT_REACHED` |
 | `GET /api/studios/my` | user | `[{ studioId, name, role, address, timeZone }]` (`role` = "Owner", "Manager", "Employee") |
+| `GET /api/studios/current` | staff | `{ studioId, name, phone, email, address, city, latitude, longitude, timeZone }` |
+| `PUT /api/studios/current` | owner | `{ name, phone?, email?, address?, city?, latitude?, longitude? }` → 204. The pin is set or cleared as a pair. Name, phone, address, city and pin are copied onto the public listing a moment later. `INVALID_STUDIO_LOCATION` |
 | `PUT /api/studios/time-zone` | owner | `{ timeZone: "Europe/Warsaw" }` → 204. `INVALID_TIME_ZONE` |
 | `GET /api/employees` | owner | `[{ userId, email, firstName, lastName, roleId, roleName }]` |
 | `POST /api/employees/invite` | owner | `{ email, roleId: 2 \| 3 }` → 200 `{ message }`. `SELF_INVITE`, `ALREADY_MEMBER`, `INVITATION_PENDING` |
@@ -173,12 +175,15 @@ the answer is emailed to the customer with a link to `{Web:BaseUrl}/account/book
 | Method and path | Auth | Body → response |
 |---|---|---|
 | `GET /api/marketplace/listing` | staff | `Listing`. `LISTING_NOT_FOUND` before the first save |
-| `PUT /api/marketplace/listing` | owner | `{ name, description?, address, city, phone?, latitude, longitude }` → `Listing` (created unpublished) |
-| `POST /api/marketplace/listing/publish` / `unpublish` | owner | 204. `LISTING_HAS_NO_SERVICES` |
+| `PUT /api/marketplace/listing` | owner | `{ description? }` → `Listing` (created unpublished, with the studio's details and services) |
+| `POST /api/marketplace/listing/publish` / `unpublish` | owner | 204. `LISTING_HAS_NO_SERVICES`, `STUDIO_DETAILS_INCOMPLETE` (no address, city or pin yet) |
 
-`Listing` = `{ studioId, name, description, address, city, phone, latitude, longitude, isPublished, timeZone, categories,
+`Listing` = `{ studioId, name, description, address, city, phone, latitude, longitude, isPublished, hasCompleteDetails, timeZone, categories,
 services: [{ id, name, category, prices: [{ vehicleSize, price }] }], averageRating, reviewCount }`. `timeZone` is the studio's
 IANA zone (e.g. `"Europe/Warsaw"`), in which its hours and slots are meant; show times in it, not the browser's zone.
+`name`, `phone`, `address`, `city` and the pin are the studio's details (edited with `PUT /api/studios/current`), not the
+listing's own. `address`, `city`, `latitude` and `longitude` are null until the owner fills them in
+(`hasCompleteDetails: false`); a published listing always has them, and one that loses them is unpublished.
 
 ## Customer map (public)
 
@@ -260,6 +265,4 @@ POST /api/bookings
 
 ## Not in the API yet
 
-- Creating a second studio and editing a studio's name, phone or address (master's versions were built on the removed
-  Core layer and weren't carried over). The public listing has its own name and address.
 - Booking responses carry the status name, not `statusId`.

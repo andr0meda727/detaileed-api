@@ -32,11 +32,7 @@ public class ListingCatalogTests
         foreach (var studio in new[] { _seed.StudioA, _seed.StudioB })
         {
             using var owner = _factory.CreateClientFor(studio.OwnerUserId);
-            var saved = await owner.PutAsJsonAsync("/api/marketplace/listing", new
-            {
-                name = "Studio", address = "ul. Długa 1", city = "Kraków", latitude = 50.06, longitude = 19.94
-            });
-            saved.EnsureSuccessStatusCode();
+            await owner.CreateListingAsync("Studio");
         }
     }
 
@@ -100,7 +96,7 @@ public class ListingCatalogTests
         await using (var db = PostgresFixture.CreateMarketplaceDbContext(new TenantContext()))
         {
             db.Listings.Add(StudioListing.Create(studioId,
-                new ListingProfile("Nowe studio", null, "ul. Krótka 2", "Kraków", null, 50.06, 19.94)));
+                new ListedStudioDetails("Nowe studio", null, "ul. Krótka 2", "Kraków", 50.06, 19.94), DateTime.UtcNow));
             await db.SaveChangesAsync();
         }
         var serviceId = Guid.NewGuid();

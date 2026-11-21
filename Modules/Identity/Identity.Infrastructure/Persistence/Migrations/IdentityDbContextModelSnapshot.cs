@@ -123,6 +123,11 @@ namespace Identity.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("address");
 
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("city");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -132,6 +137,14 @@ namespace Identity.Infrastructure.Persistence.Migrations
                     b.Property<string>("Email")
                         .HasColumnType("text")
                         .HasColumnName("email");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -158,7 +171,14 @@ namespace Identity.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("studio_pkey");
 
-                    b.ToTable("studio", "identity");
+                    b.ToTable("studio", "identity", t =>
+                        {
+                            t.HasCheckConstraint("CK_studio_latitude", "latitude BETWEEN -90 AND 90");
+
+                            t.HasCheckConstraint("CK_studio_location_pair", "(latitude IS NULL) = (longitude IS NULL)");
+
+                            t.HasCheckConstraint("CK_studio_longitude", "longitude BETWEEN -180 AND 180");
+                        });
                 });
 
             modelBuilder.Entity("Identity.Domain.Studios.StudioMember", b =>

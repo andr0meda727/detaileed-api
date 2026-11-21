@@ -35,11 +35,7 @@ public class ReviewEndpointTests
         {
             name = "Mycie", category = "ExteriorWash", prices = new[] { new { vehicleSize = "Medium", price = 80m } }
         })).EnsureSuccessStatusCode();
-        (await _owner.PutAsJsonAsync("/api/marketplace/listing", new
-        {
-            name = "Detail Studio", address = "ul. Długa 1", city = "Kraków", latitude = 50.061, longitude = 19.937
-        })).EnsureSuccessStatusCode();
-        (await _owner.PostAsync("/api/marketplace/listing/publish", null)).EnsureSuccessStatusCode();
+        await _owner.PublishListingAsync(latitude: 50.061, longitude: 19.937);
     }
 
     [OneTimeTearDown]

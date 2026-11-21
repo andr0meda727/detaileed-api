@@ -25,8 +25,7 @@ public class PublicCatalogCacheTests
         _factory = new ApiFactory();
         _owner = _factory.CreateClientFor(_seed.StudioA.OwnerUserId);
 
-        await SaveListingAsync("Cache Studio");
-        (await _owner.PostAsync("/api/marketplace/listing/publish", null)).EnsureSuccessStatusCode();
+        await _owner.PublishListingAsync("Cache Studio", 54.352, 18.646, "Gdańsk", "ul. Krótka 2");
     }
 
     [OneTimeTearDown]
@@ -36,11 +35,8 @@ public class PublicCatalogCacheTests
         await _factory.DisposeAsync();
     }
 
-    private async Task SaveListingAsync(string name) =>
-        (await _owner.PutAsJsonAsync("/api/marketplace/listing", new
-        {
-            name, address = "ul. Krótka 2", city = "Gdańsk", latitude = 54.352, longitude = 18.646
-        })).EnsureSuccessStatusCode();
+    private async Task SaveDescriptionAsync(string description) =>
+        (await _owner.PutAsJsonAsync("/api/marketplace/listing", new { description })).EnsureSuccessStatusCode();
 
     private static bool FromCache(HttpResponseMessage response) => response.Headers.Age.HasValue;
 
@@ -97,11 +93,35 @@ public class PublicCatalogCacheTests
         await anonymous.GetAsync(url);
         Assert.That(FromCache(await anonymous.GetAsync(url)), Is.True);
 
-        await SaveListingAsync("Cache Studio Renamed");
+        await SaveDescriptionAsync("Nowy opis");
         var after = await anonymous.GetFromJsonAsync<JsonElement>(url);
 
-        Assert.That(after.GetProperty("name").GetString(), Is.EqualTo("Cache Studio Renamed"));
-        await SaveListingAsync("Cache Studio");
+        Assert.That(after.GetProperty("description").GetString(), Is.EqualTo("Nowy opis"));
+    }
+
+    [Test]
+    public async Task ARenamedStudio_ShowsOnceItsListingCopiesTheName()
+    {
+        using var anonymous = _factory.CreateClient();
+        var url = $"/api/public/studios/{_seed.StudioA.StudioId}";
+        await anonymous.GetAsync(url);
+        Assert.That(FromCache(await anonymous.GetAsync(url)), Is.True);
+
+        await _owner.SetStudioDetailsAsync("Cache Studio Renamed", 54.352, 18.646, "Gdańsk", "ul. Krótka 2");
+
+        // The listing copies the name from Identity's event, which the bus delivers a moment later; that save
+        // empties the cache, so the new name shows without waiting for the cached answer to expire
+        string? name = null;
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while (DateTime.UtcNow < deadline)
+        {
+            name = (await anonymous.GetFromJsonAsync<JsonElement>(url)).GetProperty("name").GetString();
+            if (name == "Cache Studio Renamed") break;
+            await Task.Delay(100);
+        }
+        Assert.That(name, Is.EqualTo("Cache Studio Renamed"));
+
+        await _owner.SetStudioDetailsAsync("Cache Studio", 54.352, 18.646, "Gdańsk", "ul. Krótka 2");
     }
 
     private static async Task<List<Guid>> IdsAsync(HttpResponseMessage response) =>

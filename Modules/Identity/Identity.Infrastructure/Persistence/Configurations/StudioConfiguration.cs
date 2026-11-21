@@ -14,7 +14,12 @@ public class StudioConfiguration : IEntityTypeConfiguration<Studio>
 
         // stripe_customer_id (and its unique index) belongs to billing, which still maps it; Identity leaves it alone
         builder
-            .ToTable("studio", IdentityDbContext.Schema);
+            .ToTable("studio", IdentityDbContext.Schema, tb =>
+            {
+                tb.HasCheckConstraint("CK_studio_latitude", "latitude BETWEEN -90 AND 90");
+                tb.HasCheckConstraint("CK_studio_longitude", "longitude BETWEEN -180 AND 180");
+                tb.HasCheckConstraint("CK_studio_location_pair", "(latitude IS NULL) = (longitude IS NULL)");
+            });
 
         builder.Property(e => e.Id)
             .HasDefaultValueSql("gen_random_uuid()")
@@ -24,6 +29,9 @@ public class StudioConfiguration : IEntityTypeConfiguration<Studio>
         builder.Property(e => e.Phone).HasColumnName("phone");
         builder.Property(e => e.Email).HasColumnName("email");
         builder.Property(e => e.Address).HasColumnName("address");
+        builder.Property(e => e.City).HasMaxLength(100).HasColumnName("city");
+        builder.Property(e => e.Latitude).HasColumnName("latitude");
+        builder.Property(e => e.Longitude).HasColumnName("longitude");
 
         builder.Property(e => e.TimeZone)
             .HasDefaultValue(Shared.Kernel.Time.TimeZones.Default)

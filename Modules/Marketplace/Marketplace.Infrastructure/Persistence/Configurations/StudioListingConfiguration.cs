@@ -27,6 +27,7 @@ public class StudioListingConfiguration : IEntityTypeConfiguration<StudioListing
         builder.Property(e => e.Longitude).HasColumnName("longitude");
         builder.Property(e => e.IsPublished).HasColumnName("is_published");
         builder.Property(e => e.CatalogChangedAt).HasColumnName("catalog_changed_at");
+        builder.Property(e => e.StudioDetailsChangedAt).HasColumnName("studio_details_changed_at");
         builder.Property(e => e.CreatedAt).HasDefaultValueSql("now()").HasColumnName("created_at");
         builder.Property(e => e.UpdatedAt).HasDefaultValueSql("now()").HasColumnName("updated_at");
 

@@ -24,6 +24,13 @@ public class Studio : IAuditableEntity
 
     public string? Address { get; private set; }
 
+    public string? City { get; private set; }
+
+    // Where the studio is on the customer map; both or neither are set
+    public double? Latitude { get; private set; }
+
+    public double? Longitude { get; private set; }
+
     // IANA name, e.g. "Europe/Warsaw". Moments are stored in UTC; this says how the studio reads them.
     public string TimeZone { get; private set; } = TimeZones.Default;
 
@@ -101,6 +108,28 @@ public class Studio : IAuditableEntity
         return Result.Ok();
     }
 
+    /// <summary>
+    /// Replaces the studio's contact details and location. Marketplace copies them onto the studio's public listing.
+    /// </summary>
+    public Result ChangeDetails(
+        string name, string? phone, string? email, string? address, string? city, double? latitude, double? longitude)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return StudioErrors.NameRequired;
+        if (latitude.HasValue != longitude.HasValue
+            || latitude is { } lat && (double.IsNaN(lat) || lat is < -90 or > 90)
+            || longitude is { } lng && (double.IsNaN(lng) || lng is < -180 or > 180))
+            return StudioErrors.InvalidLocation;
+
+        Name = name.Trim();
+        Phone = Blank(phone);
+        Email = Blank(email);
+        Address = Blank(address);
+        City = Blank(city);
+        Latitude = latitude;
+        Longitude = longitude;
+        return Result.Ok();
+    }
+
     public Result ChangeTimeZone(string timeZone)
     {
         if (!TimeZones.IsValid(timeZone)) return StudioErrors.InvalidTimeZone;
@@ -165,6 +194,11 @@ public static class StudioErrors
         Error.Conflict("CANNOT_CHANGE_OWNER_ROLE", "Nie można zmienić roli właściciela.");
 
     public static readonly Error InvalidRole = Error.Validation("INVALID_ROLE", "Podana rola jest nieprawidłowa.");
+
+    public static readonly Error NameRequired = Error.Validation("STUDIO_NAME_REQUIRED", "Nazwa studia jest wymagana.");
+
+    public static readonly Error InvalidLocation = Error.Validation(
+        "INVALID_STUDIO_LOCATION", "Zaznacz położenie studia na mapie albo usuń je w całości.");
 
     public static readonly Error InvalidTimeZone =
         Error.Validation("INVALID_TIME_ZONE", "Nieznana strefa czasowa. Podaj nazwę IANA, np. Europe/Warsaw.");

@@ -705,38 +705,6 @@
         }
       }
     },
-    "/api/Auth/register": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterOwnerRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterOwnerRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterOwnerRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/Employees/invite": {
       "post": {
         "tags": [
@@ -1031,6 +999,65 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/Studios/current": {
+      "get": {
+        "tags": [
+          "Studios"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioDetailsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioDetailsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioDetailsDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Studios"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeStudioDetailsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeStudioDetailsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeStudioDetailsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -4583,6 +4610,65 @@
           }
         }
       },
+      "ChangeStudioDetailsRequest": {
+        "required": [
+          "name",
+          "phone",
+          "email",
+          "address",
+          "city",
+          "latitude",
+          "longitude"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "latitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
       "ChangeStudioTimeZoneRequest": {
         "required": [
           "timeZone"
@@ -5371,6 +5457,7 @@
           "latitude",
           "longitude",
           "isPublished",
+          "hasCompleteDetails",
           "timeZone",
           "categories",
           "services"
@@ -5391,10 +5478,16 @@
             ]
           },
           "address": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "city": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "phone": {
             "type": [
@@ -5405,6 +5498,7 @@
           "latitude": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
             "type": [
+              "null",
               "number",
               "string"
             ],
@@ -5413,12 +5507,16 @@
           "longitude": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
             "type": [
+              "null",
               "number",
               "string"
             ],
             "format": "double"
           },
           "isPublished": {
+            "type": "boolean"
+          },
+          "hasCompleteDetails": {
             "type": "boolean"
           },
           "timeZone": {
@@ -5478,52 +5576,15 @@
       },
       "ListingRequest": {
         "required": [
-          "name",
-          "description",
-          "address",
-          "city",
-          "phone",
-          "latitude",
-          "longitude"
+          "description"
         ],
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string"
-          },
           "description": {
             "type": [
               "null",
               "string"
             ]
-          },
-          "address": {
-            "type": "string"
-          },
-          "city": {
-            "type": "string"
-          },
-          "phone": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "latitude": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "longitude": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
           }
         }
       },
@@ -6124,32 +6185,6 @@
             "items": {
               "$ref": "#/components/schemas/RecipeLineDto"
             }
-          }
-        }
-      },
-      "RegisterOwnerRequest": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          },
-          "firstName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "lastName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "studio": {
-            "$ref": "#/components/schemas/StudioDetails"
           }
         }
       },
@@ -6829,9 +6864,24 @@
           "Correction"
         ]
       },
-      "StudioDetails": {
+      "StudioDetailsDto": {
+        "required": [
+          "studioId",
+          "name",
+          "phone",
+          "email",
+          "address",
+          "city",
+          "latitude",
+          "longitude",
+          "timeZone"
+        ],
         "type": "object",
         "properties": {
+          "studioId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "name": {
             "type": "string"
           },
@@ -6853,11 +6903,32 @@
               "string"
             ]
           },
-          "timeZone": {
+          "city": {
             "type": [
               "null",
               "string"
             ]
+          },
+          "latitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "timeZone": {
+            "type": "string"
           }
         }
       },
@@ -7183,9 +7254,6 @@
     },
     {
       "name": "MyVehicles"
-    },
-    {
-      "name": "Auth"
     },
     {
       "name": "Employees"
