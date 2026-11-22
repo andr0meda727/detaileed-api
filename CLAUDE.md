@@ -42,6 +42,29 @@ dotnet ef migrations add <Name> -p Modules/Customers/Customers.Infrastructure -s
 the Api's Development config points at the real Supabase database. To undo a migration, delete its files and
 revert the model snapshot by hand.
 
+## Commits
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<optional scope>): <summary>`.
+
+- Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`, `style`, `revert`.
+- Scope is the module or area when it helps: `scheduling`, `crm`, `identity`, `marketplace`, `customers`,
+  `inventory`, `notifications`, `shared`, `api`, `db`.
+- Summary: imperative, lower case, no trailing period, about 72 characters max.
+- Breaking API or schema changes: add `!` after the type/scope (`feat(api)!: …`) and explain in a `BREAKING CHANGE:` footer.
+- Keep commits small and focused; one type per commit.
+- `.githooks/commit-msg` enforces this. Turn it on once per clone with `git config core.hooksPath .githooks`.
+  The `Commit Messages` workflow runs the same script on every commit of a pull request (merge commits excepted),
+  so a skipped hook (`--no-verify`) still gets caught. Change the rule in the script, not here alone.
+
+Examples:
+
+```
+feat(marketplace): copy the listing's name, phone and location from the studio
+fix(identity): keep the invitee's email out of the invitation error
+docs: document that listings copy the studio's details
+chore(db): log EF's SQL commands only at Warning
+```
+
 ## Architecture
 
 ### Projects
