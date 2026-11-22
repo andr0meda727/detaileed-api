@@ -29,6 +29,9 @@ public class ApiFactory(IReadOnlyDictionary<string, string?>? settings = null) :
         builder.UseSetting("ConnectionStrings:DefaultConnection", PostgresFixture.ConnectionString);
         builder.UseSetting("Supabase:Url", "https://supabase.test");
         builder.UseSetting("Supabase:ServiceRoleKey", "test-service-role-key");
+        // Nothing is sent (Email replaces the sender), but the settings are still checked at startup
+        builder.UseSetting("Email:Provider", "Smtp");
+        builder.UseSetting("Email:Host", "localhost");
         foreach (var (key, value) in settings ?? new Dictionary<string, string?>()) builder.UseSetting(key, value);
 
         // The Windows Event Log provider is disposed before MassTransit finishes stopping, and its write then fails

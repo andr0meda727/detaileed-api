@@ -18,6 +18,18 @@ using Shared.Kernel.Time;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Build-time OpenAPI generation (dotnet-getdocument, see Api.csproj) starts the host to read the endpoints.
+// It sends nothing, so it gets placeholders for the settings the modules check at startup.
+var generatingOpenApi = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
+if (generatingOpenApi)
+{
+    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["Email:Provider"] = "Smtp",
+        ["Email:Host"] = "localhost"
+    });
+}
+
 // Enums travel as their names ("Interior"), not numbers, so the API stays readable and reordering them is safe
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -69,9 +81,8 @@ builder.Services.AddCors(options =>
 // Fail at startup, not on the first report, if the OS has no time-zone data (Alpine images need tzdata)
 TimeZones.Find(TimeZones.Default);
 
-// Build-time OpenAPI generation (dotnet-getdocument, see Api.csproj) starts the host to read the endpoints.
-// It needs no database, so the bus and the background workers are left out.
-if (System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider")
+// The OpenAPI generator needs no database either, so the bus and the background workers are left out
+if (generatingOpenApi)
 {
     builder.Services.RemoveAll<IHostedService>();
 }

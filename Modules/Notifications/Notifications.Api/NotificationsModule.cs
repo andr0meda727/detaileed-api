@@ -21,7 +21,17 @@ public static class NotificationsModule
 
     public static IServiceCollection AddNotificationsModule(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        var email = EmailSettings.Read(configuration);
+        services.AddSingleton(email);
+        if (email.Provider == EmailProvider.Resend)
+        {
+            services.AddHttpClient<IEmailSender, ResendEmailSender>(http => http.Timeout = TimeSpan.FromSeconds(30));
+        }
+        else
+        {
+            services.AddScoped<IEmailSender, SmtpEmailSender>();
+        }
+
         services.AddSingleton<BookingsReportPdf>();
         services.AddSingleton(new EmailLinks(
             configuration["Frontend:BaseUrl"] ?? throw new InvalidOperationException("Frontend:BaseUrl is missing."),

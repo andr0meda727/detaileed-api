@@ -52,6 +52,10 @@ public static class EmailTemplates
          <p>Znajdziesz go w załączniku.</p>
          """);
 
+    /// <summary>The name of the PDF attached to <see cref="BookingsReport"/>.</summary>
+    public static string ReportFileName(DateOnly dateFrom, DateOnly dateTo) =>
+        $"raport_{dateFrom:yyyyMMdd}_{dateTo:yyyyMMdd}.pdf";
+
     /// <summary>
     /// To the studio's owners: a customer asked for a visit and is waiting for an answer.
     /// </summary>

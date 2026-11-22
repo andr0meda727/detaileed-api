@@ -1,7 +1,8 @@
 namespace Notifications.Infrastructure.Email;
 
 /// <summary>
-/// The app's outgoing emails. <see cref="SmtpEmailSender"/> is the real one; tests use a fake.
+/// The app's outgoing emails. <see cref="EmailSettings.Provider"/> picks <see cref="ResendEmailSender"/>
+/// (production) or <see cref="SmtpEmailSender"/> (Mailpit locally); tests use a fake.
 /// </summary>
 public interface IEmailSender
 {

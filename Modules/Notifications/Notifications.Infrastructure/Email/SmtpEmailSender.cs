@@ -1,24 +1,13 @@
-using System.Net;
 using System.Net.Mail;
-using Microsoft.Extensions.Configuration;
 
 namespace Notifications.Infrastructure.Email;
 
 /// <summary>
-/// Sends the app's emails over SMTP (Mailpit locally, see compose.yaml). The content comes from <see cref="EmailTemplates"/>.
+/// Sends the app's emails over plain SMTP without login: Mailpit on a developer's machine (see compose.yaml).
+/// Production uses <see cref="ResendEmailSender"/>. The content comes from <see cref="EmailTemplates"/>.
 /// </summary>
-public class SmtpEmailSender(IConfiguration config) : IEmailSender
+public class SmtpEmailSender(EmailSettings settings) : IEmailSender
 {
-    private readonly string _host = config["Email:Host"]
-        ?? throw new InvalidOperationException("Brak Email:Host");
-
-    private readonly int _port = int.Parse(config["Email:Port"] ?? "1025");
-
-    private readonly string _from = config["Email:From"]
-        ?? throw new InvalidOperationException("Brak Email:From");
-
-    private readonly string _fromName = config["Email:FromName"] ?? "Detaileed";
-
     public async Task SendInvitationEmailAsync(
         string to, string studioName, string acceptUrl, DateTime expiresAt, TimeZoneInfo timeZone)
     {
@@ -31,7 +20,7 @@ public class SmtpEmailSender(IConfiguration config) : IEmailSender
     {
         using var message = Compose(to, EmailTemplates.BookingsReport(dateFrom, dateTo));
         message.Attachments.Add(new Attachment(
-            new MemoryStream(pdfBytes), $"raport_{dateFrom:yyyyMMdd}_{dateTo:yyyyMMdd}.pdf", "application/pdf"));
+            new MemoryStream(pdfBytes), EmailTemplates.ReportFileName(dateFrom, dateTo), "application/pdf"));
 
         await SendAsync(message);
     }
@@ -47,7 +36,7 @@ public class SmtpEmailSender(IConfiguration config) : IEmailSender
     {
         var message = new MailMessage
         {
-            From = new MailAddress(_from, _fromName),
+            From = settings.Sender,
             Subject = content.Subject,
             Body = content.Html,
             IsBodyHtml = true
@@ -58,9 +47,7 @@ public class SmtpEmailSender(IConfiguration config) : IEmailSender
 
     private async Task SendAsync(MailMessage message)
     {
-        using var client = new SmtpClient(_host, _port);
-        client.EnableSsl = false;
-        client.Credentials = CredentialCache.DefaultNetworkCredentials;
+        using var client = new SmtpClient(settings.Host, settings.Port);
 
         await client.SendMailAsync(message);
     }
