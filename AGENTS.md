@@ -1,6 +1,7 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for coding agents (Claude Code, Codex, Cursor, Copilot, …) and people working in this repository.
+Claude Code reads it through `CLAUDE.md`, which only imports this file.
 
 Detaileed is a multi-tenant SaaS API for car-detailing studios (ASP.NET Core 10, EF Core 10, Supabase Postgres + Supabase Auth).
 A public, Booksy-like client marketplace is planned. The codebase is mid-migration from a layered
