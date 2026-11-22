@@ -1,0 +1,27 @@
+#!/bin/sh
+# Checks that a commit message follows Conventional Commits (see AGENTS.md, "Commits").
+# Git runs it as the commit-msg hook with the message file as $1; CI runs it on every commit of a pull request.
+
+types='feat|fix|docs|refactor|test|chore|build|ci|perf|style|revert'
+pattern="^($types)(\([a-z0-9-]+\))?!?: [^ ]"
+max=72
+
+# The subject is the first line that isn't a git comment.
+subject=$(tr -d '\r' < "$1" | grep -v '^#' | head -n 1)
+
+# Messages git writes itself, and fixups that an autosquash rebase folds away.
+case "$subject" in
+  Merge\ * | Revert\ \"* | fixup!\ * | squash!\ * | amend!\ *) exit 0 ;;
+esac
+
+fail() {
+  echo "commit-msg: $1" >&2
+  echo "  got:      $subject" >&2
+  echo "  expected: <type>(<optional scope>): <summary>, e.g. feat(scheduling): add bay overlap check" >&2
+  echo "  types:    $(echo "$types" | tr '|' ' ')" >&2
+  exit 1
+}
+
+echo "$subject" | grep -Eq "$pattern" || fail "the subject doesn't follow Conventional Commits"
+[ "${#subject}" -le "$max" ] || fail "the subject is ${#subject} characters long (at most $max)"
+exit 0
