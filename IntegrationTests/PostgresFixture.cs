@@ -1,6 +1,7 @@
 using Shared.Kernel.Tenancy;
 using Identity.Domain.Studios;
 using Identity.Infrastructure.Persistence;
+using Chat.Infrastructure.Persistence;
 using Crm.Infrastructure.Persistence;
 using Customers.Infrastructure.Persistence;
 using BookingStatus = Scheduling.Domain.Bookings.BookingStatus;
@@ -50,6 +51,8 @@ public class PostgresFixture
         await marketplaceDb.Database.MigrateAsync();
         await using var customersDb = CreateCustomersDbContext(new TenantContext());
         await customersDb.Database.MigrateAsync();
+        await using var chatDb = CreateChatDbContext(new TenantContext());
+        await chatDb.Database.MigrateAsync();
 
         await SeedLookupsAsync(identityDb, schedulingDb);
     }
@@ -121,6 +124,15 @@ public class PostgresFixture
             .Options;
 
         return new CustomersDbContext(options, tenantContext);
+    }
+
+    public static ChatDbContext CreateChatDbContext(ITenantContext tenantContext)
+    {
+        var options = new DbContextOptionsBuilder<ChatDbContext>()
+            .UseNpgsql(ConnectionString, npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", ChatDbContext.Schema))
+            .Options;
+
+        return new ChatDbContext(options, tenantContext);
     }
 
     private static async Task SeedLookupsAsync(IdentityDbContext identityDb, SchedulingDbContext schedulingDb)

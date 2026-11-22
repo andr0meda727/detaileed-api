@@ -33,4 +33,9 @@ public sealed class StudioDirectory(IIdentityDbContext db) : IStudioDirectory
             .Select(s => new StudioDetails(s.Name, s.Phone, s.Address, s.City, s.Latitude, s.Longitude))
             .SingleOrDefaultAsync(cancellationToken);
     }
+
+    public async Task<bool> IsActiveMemberAsync(Guid studioId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await db.Members.AnyAsync(m => m.StudioId == studioId && m.UserId == userId && m.IsActive, cancellationToken);
+    }
 }

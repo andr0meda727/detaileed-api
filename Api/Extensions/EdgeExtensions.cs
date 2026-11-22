@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Shared.Api.RateLimiting;
@@ -31,21 +32,40 @@ public static class EdgeExtensions
     }
 
     /// <summary>
-    /// The <see cref="RateLimits.Public"/> policy: <c>RateLimiting:PublicPermitLimit</c> requests per minute per client
-    /// IP (120 by default, enough to pan the map freely), then 429 Too Many Requests.
+    /// The host's rate-limit policies; over the limit is 429 Too Many Requests.
+    /// <list type="bullet">
+    /// <item><see cref="RateLimits.Public"/>: <c>RateLimiting:PublicPermitLimit</c> requests per minute per client IP
+    /// (120 by default, enough to pan the map freely).</item>
+    /// <item><see cref="RateLimits.Chat"/>: <c>RateLimiting:ChatPermitLimit</c> messages per minute per signed-in user
+    /// (30 by default, far above anyone typing). It needs the authenticated user, so the rate limiter runs after
+    /// authentication; a request without one falls back to its IP.</item>
+    /// </list>
     /// </summary>
-    public static IServiceCollection AddPublicRateLimiting(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddRateLimits(this IServiceCollection services, IConfiguration configuration)
     {
-        var permitLimit = configuration.GetValue("RateLimiting:PublicPermitLimit", 120);
+        var publicLimit = configuration.GetValue("RateLimiting:PublicPermitLimit", 120);
+        var chatLimit = configuration.GetValue("RateLimiting:ChatPermitLimit", 30);
 
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.AddPolicy(RateLimits.Public, context => RateLimitPartition.GetFixedWindowLimiter(
-                context.Connection.RemoteIpAddress?.ToString() ?? IPAddress.None.ToString(),
-                _ => new FixedWindowRateLimiterOptions { PermitLimit = permitLimit, Window = TimeSpan.FromMinutes(1) }));
+                ClientIp(context),
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = publicLimit, Window = TimeSpan.FromMinutes(1) }));
+            options.AddPolicy(RateLimits.Chat, context => RateLimitPartition.GetFixedWindowLimiter(
+                UserId(context) is { } userId ? $"user:{userId}" : $"ip:{ClientIp(context)}",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = chatLimit, Window = TimeSpan.FromMinutes(1) }));
         });
 
         return services;
     }
+
+    private static string ClientIp(HttpContext context) =>
+        context.Connection.RemoteIpAddress?.ToString() ?? IPAddress.None.ToString();
+
+    // The validated token's subject, as TenantMiddleware reads it
+    private static string? UserId(HttpContext context) =>
+        context.User.Identity?.IsAuthenticated == true
+            ? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? context.User.FindFirst("sub")?.Value
+            : null;
 }

@@ -8,7 +8,8 @@ A public, Booksy-like client marketplace is planned. The codebase is mid-migrati
 `Api` / `Core` / `Infrastructure` design to a **modular monolith** whose modules can later be split into services.
 Identity (sign-in, tenancy, studios, staff, invitations), Inventory, CRM (clients, vehicles) and Scheduling (bookings,
 services) are modules, Notifications sends email and the bookings PDF report, and Marketplace holds the studios'
-public listings for the customer map, and Customers holds customer accounts' profiles and garages. `Core` is gone; the legacy `Infrastructure`
+public listings for the customer map, Customers holds customer accounts' profiles and garages, and Chat holds
+conversations between customers and studios (pushed live over SignalR). `Core` is gone; the legacy `Infrastructure`
 project only holds `ApplicationDbContext` (no entities) and the historical core migrations. Billing was removed: the app
 is free for now.
 
@@ -37,6 +38,7 @@ dotnet ef migrations add <Name> -p Modules/Scheduling/Scheduling.Infrastructure 
 dotnet ef migrations add <Name> -p Modules/Identity/Identity.Infrastructure -s Api -c IdentityDbContext -o Persistence/Migrations
 dotnet ef migrations add <Name> -p Modules/Marketplace/Marketplace.Infrastructure -s Api -c MarketplaceDbContext -o Persistence/Migrations
 dotnet ef migrations add <Name> -p Modules/Customers/Customers.Infrastructure -s Api -c CustomersDbContext -o Persistence/Migrations
+dotnet ef migrations add <Name> -p Modules/Chat/Chat.Infrastructure -s Api -c ChatDbContext -o Persistence/Migrations
 ```
 
 **Never run EF commands that connect to a database** (`database update`, `migrations remove`, `script --idempotent`):
@@ -49,7 +51,7 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 
 - Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`, `style`, `revert`.
 - Scope is the module or area when it helps: `scheduling`, `crm`, `identity`, `marketplace`, `customers`,
-  `inventory`, `notifications`, `shared`, `api`, `db`.
+  `inventory`, `notifications`, `chat`, `shared`, `api`, `db`.
 - Summary: imperative, lower case, no trailing period, about 72 characters max.
 - Breaking API or schema changes: add `!` after the type/scope (`feat(api)!: …`) and explain in a `BREAKING CHANGE:` footer.
 - Keep commits small and focused; one type per commit.
@@ -78,8 +80,9 @@ chore(db): log EF's SQL commands only at Warning
   - `Shared.Application` has the EF query helpers, e.g. `ToPagedResponseAsync`, `IOutbox`, and the mediator's
     pipeline behaviors (`LoggingBehavior`, `ValidationBehavior`).
   - `Shared.Infrastructure` has `TenantDbContext`, `TenantContext`, and messaging: `AddMessaging` (MassTransit on the PostgreSQL transport) and the per-module outbox (`AddOutbox<TContext>()`, `OutboxDispatcher`).
-  - `Shared.Api` has `ToProblem(Error)`, the policy names `Policies.OwnerOnly` and `RateLimits.Public` (any module may
-    require them), and `[AllowWithoutStudio]`.
+  - `Shared.Api` has `ToProblem(Error)`, the policy names `Policies.OwnerOnly`, `RateLimits.Public` (per IP) and
+    `RateLimits.Chat` (per signed-in user) that any module may require, `[AllowWithoutStudio]`, and `HubRoutes.Prefix`
+    (`/hubs`, where every SignalR hub is mapped).
 - `Modules/<Name>/{Contracts, Domain, Application, Infrastructure, Api}`: the target shape. Inventory, CRM, Scheduling and Identity are the reference implementations; Notifications has no Domain/Application (it stores nothing).
   - Domain entities have private setters and factory/behaviour methods. State rules return `Result` errors from the domain (e.g. `Booking.Complete` → `BOOKING_ALREADY_FINISHED`).
   - Application uses vertical slices (`Items/CreateItem/CreateItemHandler.cs`). Every use case is a command or query
@@ -183,4 +186,15 @@ A new module gets added to `ModuleBoundaryTests.Modules`, so every rule applies 
 - Inventory stock changes only through `InventoryItem` methods that add a `StockMovement` (stock = sum of movements).
   Completing a booking anywhere must call `EnqueueIfCompleted`, which publishes `BookingCompleted`; Inventory's
   `BookingConsumptionConsumer` deducts the estimate once per booking (unique `booking_id`).
+- Chat (`docs/chat-module-plan.md`, roadmap step 6): one `Conversation` per studio and customer account, tenant data
+  that the customer reaches through `ConversationsOfAnyStudio`/`MessagesOfAnyStudio` matched on their own user id.
+  Writes go over REST and the mediator; `ChatHub` (`/hubs/chat`) only pushes (`MessageReceived`, `ConversationRead`)
+  through `IChatNotifier` after the save, and staff call `WatchStudio` per inbox. Saves use `TrySaveChangesAsync`
+  (a lost race on the unique keys or the conversation's `xmin` row version) and retry. Mark read takes a message id,
+  never a client time. A single instance (no backplane).
+  - Under `/hubs` the JWT may come as `?access_token=` (browsers can't set WebSocket headers). Request logs would
+    print it, so `Microsoft.AspNetCore.Hosting.Diagnostics` is pinned to `Warning` in `appsettings.json`: keep it
+    there, and never log query strings for `/hubs`.
+  - `RateLimits.Chat` needs the user, so `UseAuthentication()` runs before `UseRateLimiter()`; the output cache still
+    sits after the limiter and before `UseTenantContext()`.
 - Billing was deleted on purpose (the app is free for now). Paid plans would come back as a new Billing module fed by Stripe webhooks.

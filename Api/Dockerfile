@@ -40,6 +40,10 @@ COPY ["Modules/Customers/Customers.Domain/Customers.Domain.csproj", "Modules/Cus
 COPY ["Modules/Customers/Customers.Application/Customers.Application.csproj", "Modules/Customers/Customers.Application/"]
 COPY ["Modules/Customers/Customers.Infrastructure/Customers.Infrastructure.csproj", "Modules/Customers/Customers.Infrastructure/"]
 COPY ["Modules/Customers/Customers.Api/Customers.Api.csproj", "Modules/Customers/Customers.Api/"]
+COPY ["Modules/Chat/Chat.Domain/Chat.Domain.csproj", "Modules/Chat/Chat.Domain/"]
+COPY ["Modules/Chat/Chat.Application/Chat.Application.csproj", "Modules/Chat/Chat.Application/"]
+COPY ["Modules/Chat/Chat.Infrastructure/Chat.Infrastructure.csproj", "Modules/Chat/Chat.Infrastructure/"]
+COPY ["Modules/Chat/Chat.Api/Chat.Api.csproj", "Modules/Chat/Chat.Api/"]
 RUN dotnet restore "Api/Api.csproj"
 
 COPY . .

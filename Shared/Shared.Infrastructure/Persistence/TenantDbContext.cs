@@ -11,8 +11,8 @@ namespace Shared.Infrastructure.Persistence;
 /// <item>Every <see cref="ITenantEntity"/> gets the <see cref="TenantFilter"/> query filter. It fails closed:
 /// with no studio resolved, no rows match. Code that has to work across studios (background jobs, token lookups)
 /// opts out with <c>IgnoreQueryFilters([TenantDbContext.TenantFilter])</c>.</item>
-/// <item>SaveChanges stamps audit timestamps and the current StudioId, and refuses to insert tenant data
-/// without a studio.</item>
+/// <item>SaveChanges stamps audit timestamps and, on new rows that don't name a studio, the current StudioId. It
+/// refuses to insert tenant data without a studio.</item>
 /// </list>
 /// </summary>
 public abstract class TenantDbContext(DbContextOptions options, ITenantContext tenantContext) : DbContext(options)
@@ -79,13 +79,11 @@ public abstract class TenantDbContext(DbContextOptions options, ITenantContext t
 
             if (entry.Entity is ITenantEntity tenantEntity)
             {
-                if (entry.State == EntityState.Added && CurrentStudioId.HasValue)
+                // A studio the code named itself wins: a customer writing to some studio (a booking request) may be
+                // staff elsewhere too, and then their request resolves that other studio as the tenant
+                if (entry.State == EntityState.Added && tenantEntity.StudioId == Guid.Empty)
                 {
-                    tenantEntity.StudioId = CurrentStudioId.Value;
-                }
-                else if (entry.State == EntityState.Added && tenantEntity.StudioId == Guid.Empty)
-                {
-                    throw new InvalidOperationException(
+                    tenantEntity.StudioId = CurrentStudioId ?? throw new InvalidOperationException(
                         $"Cannot add {entry.Entity.GetType().Name} without a studio: no tenant is resolved for this request.");
                 }
                 else if (entry.State == EntityState.Modified)

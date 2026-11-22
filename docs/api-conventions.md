@@ -77,6 +77,10 @@ To page another list this way: bind `[FromQuery] CursorRequest paging` (not name
 decode `paging.Cursor` with `TimeCursor.TryDecode`, keep the rows after it (moment desc, then id desc), order the same
 way and call `ToCursorResponseAsync`.
 
+Chat messages (`GET /api/me/conversations/{id}/messages`, `GET /api/conversations/{id}/messages`) page the same way,
+newest first by `sentAt`. An app that was offline catches up by reading from the top (no cursor) until it reaches a
+message it already has; new messages also arrive live over SignalR (`/hubs/chat`).
+
 ## Caching
 
 The public studio endpoints (`GET /api/public/studios`, `/{id}` and `/{id}/reviews`) are output-cached on the server

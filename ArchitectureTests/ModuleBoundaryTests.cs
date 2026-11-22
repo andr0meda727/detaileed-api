@@ -56,7 +56,12 @@ public class ModuleBoundaryTests
             typeof(Customers.Domain.CustomerVehicle).Assembly,
             typeof(Customers.Application.Abstractions.ICustomersDbContext).Assembly,
             typeof(Customers.Infrastructure.Persistence.CustomersDbContext).Assembly,
-            typeof(Customers.Api.CustomersModule).Assembly)
+            typeof(Customers.Api.CustomersModule).Assembly),
+        new("Chat",
+            typeof(Chat.Domain.ChatSide).Assembly,
+            typeof(Chat.Application.Abstractions.IChatDbContext).Assembly,
+            typeof(Chat.Infrastructure.Persistence.ChatDbContext).Assembly,
+            typeof(Chat.Api.ChatModule).Assembly)
     ];
 
     public static IEnumerable<Module> LayeredModules => Modules.Where(m => m.Domain != null);

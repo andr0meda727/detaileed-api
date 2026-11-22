@@ -6,6 +6,7 @@ using Scheduling.Contracts;
 using Scheduling.Infrastructure.Catalog;
 using Scheduling.Infrastructure.Persistence;
 using Scheduling.Infrastructure.Reports;
+using Scheduling.Infrastructure.Requests;
 using Shared.Infrastructure.Messaging;
 
 namespace Scheduling.Infrastructure;
@@ -24,6 +25,7 @@ public static class SchedulingInfrastructureExtensions
         services.AddScoped<IBookingReportSource, BookingReportSource>();
         services.AddScoped<IServiceCatalogSource, ServiceCatalogSource>();
         services.AddScoped<IUpcomingBookingsSource, UpcomingBookingsSource>();
+        services.AddScoped<IRequestContacts, RequestContacts>();
 
         services.AddOutbox<SchedulingDbContext>();
 

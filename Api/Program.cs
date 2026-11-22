@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Api.Extensions;
 using Api.Middleware;
+using Chat.Api;
 using Crm.Api;
 using Customers.Api;
 using Identity.Api;
@@ -39,14 +40,15 @@ builder.Services.AddSchedulingModule(builder.Configuration);
 builder.Services.AddNotificationsModule(builder.Configuration);
 builder.Services.AddMarketplaceModule(builder.Configuration);
 builder.Services.AddCustomersModule(builder.Configuration);
+builder.Services.AddChatModule(builder.Configuration);
 
 // One bus for the host; every assembly with consumers is listed here
 builder.Services.AddMessaging(builder.Configuration,
     IdentityModule.ConsumersAssembly, SchedulingModule.ConsumersAssembly, InventoryModule.ConsumersAssembly, NotificationsModule.ConsumersAssembly,
-    MarketplaceModule.ConsumersAssembly);
+    MarketplaceModule.ConsumersAssembly, ChatModule.ConsumersAssembly);
 
 builder.Services.AddProxySupport();
-builder.Services.AddPublicRateLimiting(builder.Configuration);
+builder.Services.AddRateLimits(builder.Configuration);
 
 builder.Services.AddOpenApi();
 
@@ -100,12 +102,14 @@ app.UseRouting();
 
 app.UseCors("Frontend");
 
+// Before the rate limiter, which limits chat per signed-in user. Checking a token needs no database, so
+// anonymous public requests lose nothing.
+app.UseAuthentication();
+
 app.UseRateLimiter();
 
-// After the rate limiter, so cached answers still count; before authentication, so a hit skips the profile lookup
+// After the rate limiter, so cached answers still count; before the tenant context, so a hit skips the profile lookup
 app.UseOutputCache();
-
-app.UseAuthentication();
 
 // Needs the routed endpoint (for [AllowWithoutStudio]) and the authenticated user
 app.UseTenantContext();
@@ -113,5 +117,7 @@ app.UseTenantContext();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapChatHub();
 
 app.Run();

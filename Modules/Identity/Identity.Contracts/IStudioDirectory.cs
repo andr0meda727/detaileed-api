@@ -20,6 +20,11 @@ public interface IStudioDirectory
     /// <see cref="StudioDetailsChanged"/>.
     /// </summary>
     Task<StudioDetails?> FindDetailsAsync(Guid studioId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Whether the user currently works at the studio (an active membership, any role).
+    /// </summary>
+    Task<bool> IsActiveMemberAsync(Guid studioId, Guid userId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
